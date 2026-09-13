@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatsong - Blind Drop Engine</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --card: #18181f;
+      --accent: #8b5cf6;
+      --accent-hover: #7c3aed;
+      --spotify: #1db954;
+      --soundcloud: #ff5500;
+      --apple: #fc3c44;
+      --youtube: #ff0000;
+      --text: #ffffff;
+      --muted: #a1a1aa;
+      --border: #27272a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; min-height: 100vh; }
+    .app { width: 100%; max-width: 550px; display: flex; flex-direction: column; gap: 20px; }
+    
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+    h2 { font-size: 1.25rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .tag { background: rgba(139, 92, 246, 0.2); color: var(--accent); padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; }
+
+    /* Form Fields */
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
+    input, select, textarea { width: 100%; padding: 10px 12px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    button:hover { background: var(--accent-hover); }
+
+    /* Player View */
+    .player-header { text-align: center; padding: 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .mystery-title { font-size: 1.4rem; font-weight: bold; }
+    .mystery-artist { color: var(--muted); font-size: 0.95rem; margin-top: 4px; }
+
+    /* Progress & Timer */
+    .timer-container { margin: 16px 0; }
+    .progress-bar { width: 100%; height: 8px; background: #27272a; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s linear; }
+    .timer-text { font-size: 0.8rem; color: var(--muted); text-align: center; margin-top: 6px; }
+
+    /* Audio Element */
+    audio { width: 100%; margin-top: 10px; }
+
+    /* Unlock Platforms */
+    .platform-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; display: none; }
+    .plat-btn { padding: 10px; border-radius: 8px; text-decoration: none; color: white; font-size: 0.85rem; font-weight: bold; text-align: center; }
+    .spotify { background: var(--spotify); }
+    .soundcloud { background: var(--soundcloud); }
+    .apple { background: var(--apple); }
+    .youtube { background: var(--youtube); }
+
+    /* Lock Screen Overlay */
+    .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; }
+    .unlocked { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; }
+
+    @media (max-width: 480px) {
+      .row { grid-template-columns: 1fr; }
+      .platform-links { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- STEP 1: CREATE DROP (ARTIST INPUT) -->
+  <div class="card" id="creatorCard">
+    <h2><span class="tag">MAKER</span> Drop een Track</h2>
+    
+    <div class="row">
+      <div class="form-group">
+        <label>Echte Artiestennaam</label>
+        <input type="text" id="inputArtist" placeholder="bijv. ZE7DD">
+      </div>
+      <div class="form-group">
+        <label>Track Titel</label>
+        <input type="text" id="inputTitle" placeholder="bijv. Ayla">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Audio Bron (MP3 Bestand óf Directe Preview Link)</label>
+      <input type="file" id="inputFile" accept="audio/*" style="margin-bottom: 6px;">
+      <input type="url" id="inputAudioUrl" placeholder="Of plak MP3 / Preview URL">
+    </div>
+
+    <div class="form-group">
+      <label>Platform Links voor Save (Optioneel)</label>
+      <div class="row">
+        <input type="url" id="linkSpotify" placeholder="Spotify Link">
+        <input type="url" id="linkSoundcloud" placeholder="SoundCloud Link">
+      </div>
+      <div class="row" style="margin-top: 6px;">
+        <input type="url" id="linkApple" placeholder="Apple Music Link">
+        <input type="url" id="linkYoutube" placeholder="YouTube Link">
+      </div>
+    </div>
+
+    <button onclick="publishDrop()">Genereer Blind Drop 🚀</button>
+  </div>
+
+  <!-- STEP 2: BLIND PLAYER (LISTENER VIEW) -->
+  <div class="card" id="playerCard" style="display:none;">
+    <h2><span class="tag">LUISTERAAR</span> 👁️ The Blind Drop</h2>
+
+    <div class="player-header">
+      <div class="mystery-title" id="displayTitle">🔒 Mystery Track</div>
+      <div class="mystery-artist" id="displayArtist">🔒 Verborgen Artiest</div>
+    </div>
+
+    <!-- Audio Speler -->
+    <audio id="mainPlayer" controls></audio>
+
+    <!-- Luister-timer voor vereiste seconden -->
+    <div class="timer-container">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="timer-text" id="timerText">Luister nog 30 seconden om de knop en feedback vrij te schakelen</div>
+    </div>
+
+    <div class="status-badge" id="statusBadge">
+      🔒 Speler vergrendeld. Druk op play en luister minimaal 30 seconden.
+    </div>
+
+    <!-- Feedback & Unlock sectie -->
+    <div id="unlockForm" style="opacity: 0.5; pointer-events: none;">
+      <div class="form-group">
+        <label>Jouw Eerlijke Feedback (Minimaal 10 tekens)</label>
+        <textarea id="feedbackText" rows="2" placeholder="Wat vind je van de productie, de vibe of het ritme?"></textarea>
+      </div>
+      <button onclick="unlockContent()" id="unlockBtn" disabled>Verstuur & Onthul Artiest 🔓</button>
+    </div>
+
+    <!-- Ontgrendelde Platform Links -->
+    <div class="platform-links" id="platformLinks">
+      <a href="#" target="_blank" id="btnSpotify" class="plat-btn spotify">💚 Spotify</a>
+      <a href="#" target="_blank" id="btnSoundcloud" class="plat-btn soundcloud">🧡 SoundCloud</a>
+      <a href="#" target="_blank" id="btnApple" class="plat-btn apple">❤️ Apple Music</a>
+      <a href="#" target="_blank" id="btnYoutube" class="plat-btn youtube">❤️ YouTube</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let dropData = {};
+  let listenedSeconds = 0;
+  let requiredSeconds = 30; // Bepaal luistertijd
+  let timerInterval = null;
+  let isListeningComplete = false;
+
+  const audio = document.getElementById('mainPlayer');
+
+  function publishDrop() {
+    const artist = document.getElementById('inputArtist').value.trim() || 'Onbekende Artiest';
+    const title = document.getElementById('inputTitle').value.trim() || 'Naamloze Track';
+    const fileInput = document.getElementById('inputFile');
+    const urlInput = document.getElementById('inputAudioUrl').value.trim();
+
+    let audioSrc = '';
+    if (fileInput.files.length > 0) {
+      audioSrc = URL.createObjectURL(fileInput.files[0]);
+    } else if (urlInput) {
+      audioSrc = urlInput;
+    } else {
+      // Demo fallback audio als er niks is geüpload
+      audioSrc = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    }
+
+    dropData = {
+      artist: artist,
+      title: title,
+      audioSrc: audioSrc,
+      spotify: document.getElementById('linkSpotify').value,
+      soundcloud: document.getElementById('linkSoundcloud').value,
+      apple: document.getElementById('linkApple').value,
+      youtube: document.getElementById('linkYoutube').value
+    };
+
+    // Laad speler
+    audio.src = dropData.audioSrc;
+    document.getElementById('creatorCard').style.display = 'none';
+    document.getElementById('playerCard').style.display = 'block';
+  }
+
+  // Luistertimer verwerken
+  audio.addEventListener('play', () => {
+    if (isListeningComplete) return;
+
+    timerInterval = setInterval(() => {
+      if (!audio.paused && listenedSeconds < requiredSeconds) {
+        listenedSeconds++;
+        updateProgress();
+      }
+    }, 1000);
+  });
+
+  audio.addEventListener('pause', () => {
+    clearInterval(timerInterval);
+  });
+
+  function updateProgress() {
+    const percentage = (listenedSeconds / requiredSeconds) * 100;
+    document.getElementById('progressFill').style.width = percentage + '%';
+
+    const remaining = requiredSeconds - listenedSeconds;
+    if (remaining > 0) {
+      document.getElementById('timerText').innerText = `Luister nog ${remaining} seconden...`;
+    } else {
+      document.getElementById('timerText').innerText = "✅ Voldoende geluisterd! Vul je feedback in.";
+      enableFeedbackForm();
+    }
+  }
+
+  function enableFeedbackForm() {
+    isListeningComplete = true;
+    clearInterval(timerInterval);
+    document.getElementById('unlockForm').style.opacity = "1";
+    document.getElementById('unlockForm').style.pointerEvents = "auto";
+    document.getElementById('unlockBtn').disabled = false;
+    document.getElementById('statusBadge').innerText = "💬 Luistertijd gehaald! Geef feedback om te ontgrendelen.";
+  }
+
+  function unlockContent() {
+    const feedback = document.getElementById('feedbackText').value.trim();
+    if (feedback.length < 10) {
+      alert("Schrijf minimaal 10 tekens feedback om te ontgrendelen.");
+      return;
+    }
+
+    // Onthul data
+    document.getElementById('displayTitle').innerText = dropData.title;
+    document.getElementById('displayArtist').innerText = "👤 " + dropData.artist;
+
+    // Status update
+    const status = document.getElementById('statusBadge');
+    status.innerText = "🎉 Artiest Ontgrendeld!";
+    status.classList.add('unlocked');
+
+    // Toon links
+    const platContainer = document.getElementById('platformLinks');
+    platContainer.style.display = 'grid';
+
+    setupLink('btnSpotify', dropData.spotify);
+    setupLink('btnSoundcloud', dropData.soundcloud);
+    setupLink('btnApple', dropData.apple);
+    setupLink('btnYoutube', dropData.youtube);
+
+    document.getElementById('unlockBtn').style.display = 'none';
+  }
+
+  function setupLink(id, url) {
+    const el = document.getElementById(id);
+    if (url && url.length > 5) {
+      el.href = url;
+      el.style.display = 'block';
+    } else {
+      el.style.display = 'none';
+    }
+  }
+</script>
+
+</body>
+</html>
