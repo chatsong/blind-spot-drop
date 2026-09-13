@@ -1,71 +1,435 @@
-// Dynamic Platform Parser & Button Generator
-function parseTrackSource(url) {
-  const cleanUrl = url.split('?')[0];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatsong - Universal Blind Drop</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --card: #18181f;
+      --accent: #8b5cf6;
+      --accent-hover: #7c3aed;
+      --chatsong: #6366f1;
+      --text: #ffffff;
+      --muted: #a1a1aa;
+      --border: #27272a;
+      --success: #10b981;
+    }
 
-  // 1. SoundCloud
-  if (cleanUrl.includes('soundcloud.com')) {
-    return {
-      type: 'iframe',
-      embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(cleanUrl)}&color=%238b5cf6&auto_play=true`,
-      btnText: '☁️ Follow on SoundCloud',
-      actionUrl: cleanUrl
-    };
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 12px; display: flex; justify-content: center; min-height: 100vh; }
+    .app { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; margin: auto 0; }
+    
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+    .badge { display: inline-block; background: rgba(139, 92, 246, 0.2); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; margin-bottom: 12px; }
+    
+    h2 { font-size: 1.2rem; margin-bottom: 6px; }
+    p.sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; }
+
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+    input, textarea { width: 100%; padding: 12px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
+    input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+
+    .divider { text-align: center; color: var(--muted); font-size: 0.75rem; margin: 10px 0; }
+
+    button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
+    button:hover { background: var(--accent-hover); }
+
+    /* Player Container & Blind Masking */
+    .player-wrapper { position: relative; width: 100%; min-height: 180px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
+    
+    .mask-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #18181f;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: opacity 0.4s ease;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .mask-overlay.unlocked { opacity: 0; pointer-events: none; }
+
+    iframe { width: 100%; height: 180px; border: none; display: block; }
+    audio { width: 100%; margin-top: 10px; }
+
+    /* Progress & Timer */
+    .timer-box { margin: 12px 0; text-align: center; }
+    .progress-bar { width: 100%; height: 6px; background: #27272a; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+    .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s linear; }
+    .timer-text { font-size: 0.8rem; color: var(--muted); }
+
+    .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; border: 1px dashed var(--border); }
+    .status-badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success); }
+
+    /* High-Converting Member Banner */
+    .member-promo-box {
+      display: none;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.15));
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 14px;
+      text-align: left;
+    }
+
+    .promo-badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--success);
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .member-promo-box h3 {
+      font-size: 1rem;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+
+    .benefit-list {
+      list-style: none;
+      padding: 0;
+      margin: 8px 0 14px 0;
+    }
+
+    .benefit-list li {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .benefit-list strong {
+      color: #ffffff;
+    }
+
+    .btn-promo-signup {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: var(--accent);
+      color: #ffffff;
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.9rem;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .btn-promo-signup:hover {
+      background: var(--accent-hover);
+    }
+
+    .actions-box { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
+    .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
+    .chatsong-btn { background: var(--chatsong); }
+    .share-btn { background: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- STEP 1: SUBMIT TRACK & PROFILE -->
+  <div class="card" id="submitCard">
+    <span class="badge">👁️ UNIVERSAL BLIND DROP</span>
+    <h2>Submit Track or Short</h2>
+    <p class="sub">Paste any share link (TikTok, Bandcamp, Mixcloud, YouTube, SoundCloud, Spotify) or upload MP3.</p>
+
+    <div class="form-group">
+      <label>Platform Track Link</label>
+      <input type="url" id="trackUrl" placeholder="Paste TikTok, Bandcamp, Mixcloud, YouTube, SoundCloud URL...">
+    </div>
+
+    <div class="form-group">
+      <label>Artist Profile / Social Link (Hidden until unlocked)</label>
+      <input type="url" id="artistProfileUrl" placeholder="TikTok, Bandcamp, Instagram or Chatsong profile link">
+    </div>
+
+    <div class="divider">— OR UPLOAD MP3 —</div>
+
+    <div class="form-group">
+      <input type="file" id="fileInput" accept="audio/*">
+    </div>
+
+    <button onclick="createDrop()">Create Blind Drop 🚀</button>
+  </div>
+
+  <!-- STEP 2: BLIND PLAYER VIEW -->
+  <div class="card" id="playerCard" style="display:none;">
+    <span class="badge">🔒 MYSTERY DROP</span>
+    
+    <div class="player-wrapper" id="playerWrapper">
+      <!-- Donkere afdeklaag -->
+      <div class="mask-overlay" id="maskOverlay">
+        <div style="font-size: 1.8rem; margin-bottom: 4px;">🔒</div>
+        <div style="font-weight: bold; font-size: 1.1rem;">Hidden Artist & Track</div>
+        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;" id="platformDetect">Detecting platform...</div>
+      </div>
+
+      <!-- Speler container -->
+      <div id="mediaContainer"></div>
+    </div>
+
+    <!-- Timer -->
+    <div class="timer-box">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="timer-text" id="timerText">Listen for 30 seconds to unlock feedback...</div>
+    </div>
+
+    <div class="status-badge" id="statusBadge">
+      ▶ Play the track above to start the 30s unlock timer.
+    </div>
+
+    <!-- Feedback -->
+    <div id="feedbackForm" style="opacity: 0.4; pointer-events: none; margin-top: 12px;">
+      <div class="form-group">
+        <label>Honest Feedback (Min. 10 characters)</label>
+        <textarea id="feedbackText" rows="3" placeholder="How is the production, mix, or vibe?"></textarea>
+      </div>
+      <button onclick="unlockTrack()" id="unlockBtn" disabled>Submit Feedback & Unlock Artist 🔓</button>
+    </div>
+
+    <!-- Unlocked Actions & Links -->
+    <div class="actions-box" id="unlockedActions">
+      <a href="#" target="_blank" class="action-btn chatsong-btn" id="artistProfileBtn" style="display:none;">👤 View Artist Profile & Socials</a>
+      <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Original Track</a>
+      <button class="action-btn share-btn" onclick="shareDrop()">📲 Share Blind Drop</button>
+    </div>
+
+    <!-- Sign-Up Banner (Getoond na Unlock) -->
+    <div class="member-promo-box" id="memberPromo">
+      <div class="promo-badge">⚡ DOUBLE YOUR CHANCES AS A MEMBER</div>
+      <h3>Want to get your music discovered?</h3>
+      
+      <ul class="benefit-list">
+        <li>✨ Submit your songs to <strong>Submit Hidden Gem</strong></li>
+        <li>📊 Compete on the <strong>Interactive Chart</strong></li>
+        <li>💬 Connect in <strong>Chatrooms & Topics</strong></li>
+      </ul>
+
+      <a href="https://chatsong.nl/register" target="_top" class="btn-promo-signup">
+        Sign Up & Post Your Songs 🚀
+      </a>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  let rawLink = '';
+  let profileLink = '';
+  let listenedSeconds = 0;
+  const requiredSeconds = 30;
+  let timerInterval = null;
+  let detectedPlatform = null;
+
+  function createDrop() {
+    const urlInput = document.getElementById('trackUrl').value.trim();
+    profileLink = document.getElementById('artistProfileUrl').value.trim();
+    const fileInput = document.getElementById('fileInput');
+    const container = document.getElementById('mediaContainer');
+    const platformDetect = document.getElementById('platformDetect');
+
+    if (!urlInput && fileInput.files.length === 0) {
+      alert("Please enter a link or select an MP3 file.");
+      return;
+    }
+
+    container.innerHTML = '';
+    rawLink = urlInput;
+
+    if (fileInput.files.length > 0) {
+      // Local MP3 File
+      platformDetect.innerText = "Source: Uploaded MP3 Audio";
+      detectedPlatform = { platform: 'MP3 Audio', btnText: '📥 Save / Stream Audio' };
+      const audioUrl = URL.createObjectURL(fileInput.files[0]);
+      container.innerHTML = `<audio id="blindAudio" controls src="${audioUrl}"></audio>`;
+      setupAudioListener(document.getElementById('blindAudio'));
+    } else {
+      // Platform Parsing
+      detectedPlatform = parseMediaUrl(urlInput);
+      platformDetect.innerText = `Platform: ${detectedPlatform.platform}`;
+      
+      if (detectedPlatform.type === 'iframe') {
+        container.innerHTML = `<iframe src="${detectedPlatform.embedUrl}" allow="autoplay; encrypted-media"></iframe>`;
+        startTimer(); // Autostart timer for embeds
+      } else {
+        container.innerHTML = `<audio id="blindAudio" controls src="${urlInput}"></audio>`;
+        setupAudioListener(document.getElementById('blindAudio'));
+      }
+    }
+
+    document.getElementById('submitCard').style.display = 'none';
+    document.getElementById('playerCard').style.display = 'block';
   }
 
-  // 2. Bandcamp
-  if (cleanUrl.includes('bandcamp.com')) {
-    return {
-      type: 'iframe',
-      // Bandcamp vereist de standaard pagina link voor hun embed
-      embedUrl: cleanUrl, 
-      btnText: '🛒 Buy / Support on Bandcamp',
-      actionUrl: cleanUrl
-    };
+  // Universal URL Parser (TikTok, Bandcamp, Mixcloud, YouTube, SoundCloud, Spotify)
+  function parseMediaUrl(url) {
+    const cleanUrl = url.split('?')[0];
+
+    // 1. YouTube & Shorts
+    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
+    if (ytMatch) {
+      return { 
+        type: 'iframe', 
+        platform: 'YouTube / Shorts', 
+        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`,
+        btnText: '🔔 Subscribe & Save on YouTube'
+      };
+    }
+
+    // 2. TikTok
+    if (cleanUrl.includes('tiktok.com')) {
+      const ttMatch = url.match(/video\/(\d+)/);
+      const embedUrl = ttMatch ? `https://www.tiktok.com/embed/v2/${ttMatch[1]}` : cleanUrl;
+      return { 
+        type: 'iframe', 
+        platform: 'TikTok Video', 
+        embedUrl: embedUrl,
+        btnText: '📱 Follow & Like on TikTok'
+      };
+    }
+
+    // 3. Bandcamp
+    if (cleanUrl.includes('bandcamp.com')) {
+      return { 
+        type: 'iframe', 
+        platform: 'Bandcamp', 
+        embedUrl: cleanUrl,
+        btnText: '🛒 Buy & Support on Bandcamp'
+      };
+    }
+
+    // 4. Mixcloud
+    if (cleanUrl.includes('mixcloud.com')) {
+      const feedPath = cleanUrl.replace('https://www.mixcloud.com', '');
+      return { 
+        type: 'iframe', 
+        platform: 'Mixcloud', 
+        embedUrl: `https://www.mixcloud.com/widget/iframe/?hide_cover=1&feed=${encodeURIComponent(feedPath)}`,
+        btnText: '🎛️ Listen & Follow on Mixcloud'
+      };
+    }
+
+    // 5. Spotify
+    const spotifyMatch = url.match(/open\.spotify\.com\/(track|episode)\/([a-zA-Z0-9]+)/);
+    if (spotifyMatch) {
+      return { 
+        type: 'iframe', 
+        platform: 'Spotify', 
+        embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator`,
+        btnText: '💚 Save Track on Spotify'
+      };
+    }
+
+    // 6. SoundCloud
+    if (cleanUrl.includes('soundcloud.com')) {
+      return { 
+        type: 'iframe', 
+        platform: 'SoundCloud', 
+        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(cleanUrl)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=false`,
+        btnText: '☁️ Save & Follow on SoundCloud'
+      };
+    }
+
+    // Default Fallback
+    return { type: 'audio', platform: 'Direct Audio Stream', embedUrl: url, btnText: '🔗 Open Original Track' };
   }
 
-  // 3. YouTube / Shorts
-  if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be')) {
-    const ytId = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/))([\w-]{11})/)[1];
-    return {
-      type: 'iframe',
-      embedUrl: `https://www.youtube.com/embed/${ytId}?autoplay=1`,
-      btnText: '🔔 Subscribe on YouTube',
-      actionUrl: cleanUrl
-    };
+  function setupAudioListener(audioEl) {
+    audioEl.addEventListener('play', () => startTimer());
+    audioEl.addEventListener('pause', () => clearInterval(timerInterval));
   }
 
-  // 4. Direct MP3 File
-  if (cleanUrl.endsWith('.mp3') || cleanUrl.endsWith('.wav')) {
-    return {
-      type: 'audio',
-      embedUrl: cleanUrl,
-      btnText: '📥 Download / Support Track',
-      actionUrl: cleanUrl
-    };
+  function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    
+    timerInterval = setInterval(() => {
+      if (listenedSeconds < requiredSeconds) {
+        listenedSeconds++;
+        const percent = (listenedSeconds / requiredSeconds) * 100;
+        document.getElementById('progressFill').style.width = percent + '%';
+        
+        const remaining = requiredSeconds - listenedSeconds;
+        document.getElementById('timerText').innerText = `Listen for ${remaining} more seconds...`;
+      } else {
+        clearInterval(timerInterval);
+        enableUnlock();
+      }
+    }, 1000);
   }
 
-  // Fallback (Generieke Link)
-  return {
-    type: 'iframe',
-    embedUrl: cleanUrl,
-    btnText: '🔗 Open Original Platform',
-    actionUrl: cleanUrl
-  };
-}
-
-// Speler Laden & Knop Dynamisch Aanpassen
-function renderMedia(trackUrl) {
-  const source = parseTrackSource(trackUrl);
-  const container = document.getElementById('mediaContainer');
-  const platformBtn = document.getElementById('platformFollowBtn');
-
-  if (source.type === 'iframe') {
-    container.innerHTML = `<iframe src="${source.embedUrl}" allow="autoplay"></iframe>`;
-  } else if (source.type === 'audio') {
-    container.innerHTML = `<audio id="mp3Player" controls autoplay src="${source.embedUrl}" style="width:100%; margin-top:50px;"></audio>`;
+  function enableUnlock() {
+    document.getElementById('timerText').innerText = "✅ Required 30s listening reached!";
+    document.getElementById('statusBadge').innerText = "💬 Leave honest feedback below to unlock artist profile & links.";
+    
+    const form = document.getElementById('feedbackForm');
+    form.style.opacity = "1";
+    form.style.pointerEvents = "auto";
+    document.getElementById('unlockBtn').disabled = false;
   }
 
-  // Pas de knoptekst en URL dynamisch aan voor het ontgrendelde scherm
-  platformBtn.innerText = source.btnText;
-  platformBtn.href = source.actionUrl;
-}
+  function unlockTrack() {
+    const feedback = document.getElementById('feedbackText').value.trim();
+    if (feedback.length < 10) {
+      alert("Please leave at least 10 characters of feedback.");
+      return;
+    }
+
+    // 1. Verwijder de zwarte blind-overlay
+    document.getElementById('maskOverlay').classList.add('unlocked');
+
+    // 2. Status update naar success
+    const badge = document.getElementById('statusBadge');
+    badge.innerText = "🎉 Track & Artist Unlocked!";
+    badge.classList.add('success');
+
+    // 3. Toon de ontgrendelde actieknoppen
+    document.getElementById('unlockedActions').style.display = 'flex';
+
+    if (rawLink) {
+      const origBtn = document.getElementById('originalLinkBtn');
+      origBtn.href = rawLink;
+      if (detectedPlatform && detectedPlatform.btnText) {
+        origBtn.innerText = detectedPlatform.btnText;
+      }
+    }
+
+    if (profileLink) {
+      const profBtn = document.getElementById('artistProfileBtn');
+      profBtn.href = profileLink;
+      profBtn.style.display = 'block';
+    }
+
+    // 4. Verberg het feedbackformulier knopje
+    document.getElementById('feedbackForm').style.display = 'none';
+
+    // 5. Toon de High-Converting Sign-Up Promo Banner
+    document.getElementById('memberPromo').style.display = 'block';
+  }
+
+  function shareDrop() {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Blind Drop on Chatsong',
+        text: 'Listen to this mystery track on Chatsong without bias!',
+        url: window.location.href
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert("Link copied to clipboard!");
+    }
+  }
+</script>
+
+</body>
+</html>
