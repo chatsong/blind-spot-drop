@@ -49,17 +49,28 @@
     
     iframe { width: 100%; height: 100%; border: none; display: block; }
 
-    .timer-box { margin: 12px 0; text-align: center; }
-    .progress-bar { width: 100%; height: 6px; background: #27272a; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
-    .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s linear; }
-    .timer-text { font-size: 0.8rem; color: var(--muted); }
+    .mystery-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 15, 18, 0.85);
+      backdrop-filter: blur(6px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      z-index: 10;
+      transition: opacity 0.3s ease;
+    }
+    .mystery-overlay.hidden { opacity: 0; pointer-events: none; }
+    .mystery-title { font-weight: 800; font-size: 0.9rem; color: var(--accent); letter-spacing: 1px; }
+    .mystery-sub { font-size: 0.75rem; color: var(--muted); }
 
     .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; border: 1px dashed var(--border); }
     .status-badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success); }
 
     .actions-box { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
     .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; display: block; }
-    .chatsong-btn { background: var(--chatsong); }
     .platform-btn { background: #16a34a; }
     .share-btn { background: var(--accent); }
     .delete-btn { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
@@ -89,11 +100,11 @@
   <div class="card" id="submitCard">
     <span class="badge">👁️ UNIVERSAL BLIND DROP</span>
     <h2>Submit Track or Short</h2>
-    <p class="sub">Paste mobile share text or standard link (SoundCloud, Spotify, YouTube, Bandcamp, Mixcloud)!</p>
+    <p class="sub">Paste mobile share text, mobile links, or standard links (SoundCloud, Spotify, YouTube Shorts, Bandcamp)!</p>
 
     <div class="form-group">
       <label>Paste Share Text / Link here</label>
-      <textarea id="trackUrl" rows="3" placeholder="e.g. Listen to Pulse After Panic by @ChatsongMusic on #SoundCloud https://on.soundcloud.com/..."></textarea>
+      <textarea id="trackUrl" rows="3" placeholder="e.g. https://on.soundcloud.com/... or https://youtube.com/shorts/..."></textarea>
     </div>
 
     <div class="form-group">
@@ -109,24 +120,24 @@
     <span class="badge" id="activeTrackBadge">🔒 MYSTERY DROP</span>
     
     <div class="player-wrapper" id="playerWrapper">
+      <!-- Mystery cover layer to keep artist & vibe secret until review -->
+      <div class="mystery-overlay" id="mysteryOverlay">
+        <div class="mystery-title">🎧 BLIND VIBE CHECK</div>
+        <div class="mystery-sub">Listen to the track & drop honest feedback below to reveal!</div>
+      </div>
       <div id="mediaContainer" style="height: 100%;"></div>
     </div>
 
-    <div class="timer-box">
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="timer-text" id="timerText">Click the listen button above & let the 30s timer run!</div>
-    </div>
-
     <div class="status-badge" id="statusBadge">
-      ▶ Open the track and listen for 30 seconds to unlock feedback.
+      💬 Listen directly inside Chatsong, then write your review to unlock the artist.
     </div>
 
-    <div id="feedbackForm" style="opacity: 0.4; pointer-events: none; margin-top: 12px;">
+    <div id="feedbackForm" style="margin-top: 12px;">
       <div class="form-group">
         <label>Honest Feedback (Min. 10 characters)</label>
-        <textarea id="feedbackText" rows="3" placeholder="How is the mix, arrangement, or vibe?"></textarea>
+        <textarea id="feedbackText" rows="3" placeholder="How is the mix, arrangement, or overall vibe?"></textarea>
       </div>
-      <button onclick="unlockTrack()" id="unlockBtn" disabled>Submit Feedback & Reveal Artist 🔓</button>
+      <button onclick="unlockTrack()" id="unlockBtn">Submit Feedback & Reveal Artist 🔓</button>
     </div>
 
     <div class="actions-box" id="unlockedActions">
@@ -151,9 +162,6 @@
 
   let dropsList = [];
   let currentDropIndex = null;
-  let listenedSeconds = 0;
-  const requiredSeconds = 30;
-  let timerInterval = null;
 
   window.onload = function() {
     const cached = localStorage.getItem('chatsong_drops');
@@ -175,69 +183,68 @@
     }
   }
 
+  // Slimme URL parser die mobiele shares en korte links omzet naar werkende web-embeds voor Chatsong!
   function parseMediaUrl(inputString) {
     const urlMatch = inputString.match(/(https?:\/\/[^\s]+)/g);
-    const cleanUrl = urlMatch ? urlMatch[0] : inputString.trim();
+    let cleanUrl = urlMatch ? urlMatch[0] : inputString.trim();
 
-    if (cleanUrl.includes('on.soundcloud.com')) {
-      return { 
-        platform: 'SoundCloud (Mobile)', 
-        embedUrl: '', 
-        rawUrl: cleanUrl,
-        btnText: '🟠 Listen on SoundCloud'
-      };
-    }
-
-    if (cleanUrl.includes('soundcloud.com')) {
-      let scEmbedUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(cleanUrl)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`;
-      return { 
-        platform: 'SoundCloud', 
-        embedUrl: scEmbedUrl,
+    // 1. SoundCloud Mobile / Short link omzetten naar web embed
+    if (cleanUrl.includes('on.soundcloud.com') || cleanUrl.includes('soundcloud.app.goo.gl')) {
+      return {
+        platform: 'SoundCloud',
+        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(cleanUrl)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`,
         rawUrl: cleanUrl,
         btnText: '🟠 Stream on SoundCloud'
       };
     }
 
+    if (cleanUrl.includes('soundcloud.com')) {
+      return {
+        platform: 'SoundCloud',
+        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(cleanUrl)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`,
+        rawUrl: cleanUrl,
+        btnText: '🟠 Stream on SoundCloud'
+      };
+    }
+
+    // 2. Spotify
     const spotifyMatch = cleanUrl.match(/(?:open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:track|episode)\/|spotify:track:)([a-zA-Z0-9]+)/);
     if (spotifyMatch) {
-      return { 
-        platform: 'Spotify', 
+      return {
+        platform: 'Spotify',
         embedUrl: `https://open.spotify.com/embed/track/${spotifyMatch[1]}?utm_source=generator`,
         rawUrl: cleanUrl,
         btnText: '💚 Stream on Spotify'
       };
     }
 
-    if (cleanUrl.includes('bandcamp.com')) {
-      return { 
-        platform: 'Bandcamp', 
-        embedUrl: '',
-        rawUrl: cleanUrl,
-        btnText: '🎵 Stream on Bandcamp'
-      };
-    }
-
-    if (cleanUrl.includes('mixcloud.com')) {
-      const path = cleanUrl.replace(/https?:\/\/(www\.)?mixcloud\.com/, '');
-      return { 
-        platform: 'Mixcloud', 
-        embedUrl: `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(path)}&hide_cover=1&light=1`,
-        rawUrl: cleanUrl,
-        btnText: '☁️ Stream on Mixcloud'
-      };
-    }
-
+    // 3. YouTube & YouTube Shorts omzetten naar nette embed
     const ytMatch = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?.*v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
-      return { 
-        platform: 'YouTube / Shorts', 
+      return {
+        platform: 'YouTube / Shorts',
         embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?enablejsapi=1`,
         rawUrl: cleanUrl,
         btnText: '▶ Stream on YouTube'
       };
     }
 
-    return { platform: 'External Link', embedUrl: '', rawUrl: cleanUrl, btnText: '🎧 Open Platform Link' };
+    // 4. Bandcamp & Mixcloud
+    if (cleanUrl.includes('bandcamp.com')) {
+      return { platform: 'Bandcamp', embedUrl: cleanUrl, rawUrl: cleanUrl, btnText: '🎵 Stream on Bandcamp' };
+    }
+
+    if (cleanUrl.includes('mixcloud.com')) {
+      const path = cleanUrl.replace(/https?:\/\/(www\.)?mixcloud\.com/, '');
+      return {
+        platform: 'Mixcloud',
+        embedUrl: `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(path)}&hide_cover=1&light=1`,
+        rawUrl: cleanUrl,
+        btnText: '☁️ Stream on Mixcloud'
+      };
+    }
+
+    return { platform: 'External Link', embedUrl: cleanUrl, rawUrl: cleanUrl, btnText: '🎧 Open Platform Link' };
   }
 
   async function createDrop() {
@@ -274,93 +281,41 @@
     document.getElementById('artistName').value = '';
   }
 
-  function startTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-      if (listenedSeconds < requiredSeconds) {
-        listenedSeconds++;
-        const percent = (listenedSeconds / requiredSeconds) * 100;
-        document.getElementById('progressFill').style.width = percent + '%';
-        document.getElementById('timerText').innerText = `Listening... ${requiredSeconds - listenedSeconds}s remaining`;
-      } else {
-        clearInterval(timerInterval);
-        enableUnlock();
-      }
-    }, 1000);
-  }
-
   function loadDropIntoPlayer(index) {
     currentDropIndex = index;
     const drop = dropsList[index];
-    listenedSeconds = 0;
-    if (timerInterval) clearInterval(timerInterval);
 
     const container = document.getElementById('mediaContainer');
-    
-    // Check if it's an external button link (like mobile shares or Bandcamp)
-    if (!drop.embed_url || drop.platform.includes('Mobile') || drop.platform === 'Bandcamp') {
-      container.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:15px; text-align:center; gap: 8px;">
-          <p style="color: #a1a1aa; font-size: 0.8rem; margin: 0;">Click below to open track & start your 30s timer:</p>
-          <a href="${drop.raw_link}" target="_blank" onclick="onExternalListenClick()" class="action-btn platform-btn" style="text-decoration:none; display:inline-block; padding: 10px 20px; font-size: 0.85rem;">
-            ${drop.btn_text || '🎧 Open Track'}
-          </a>
-        </div>`;
-    } else {
-      container.innerHTML = `<iframe src="${drop.embed_url}" allow="encrypted-media"></iframe>`;
-      startTimer(); // Start timer automatically for embedded iframe players
-    }
+    container.innerHTML = `<iframe src="${drop.embed_url}" allow="encrypted-media"></iframe>`;
 
-    document.getElementById('activeTrackBadge').innerText = drop.unlocked ? `🔓 ${drop.artist_name}` : `🔒 MYSTERY DROP`;
-
-    document.getElementById('progressFill').style.width = '0%';
-    document.getElementById('timerText').innerText = 'Open track or hit play to start 30s timer...';
-    document.getElementById('statusBadge').className = 'status-badge';
-    document.getElementById('statusBadge').innerText = '▶ Listen for 30 seconds to unlock feedback.';
-    
-    document.getElementById('feedbackForm').style.display = 'block';
-    document.getElementById('feedbackForm').style.opacity = '0.4';
-    document.getElementById('feedbackForm').style.pointerEvents = 'none';
-    document.getElementById('unlockBtn').disabled = true;
-    document.getElementById('unlockedActions').style.display = 'none';
-
+    // Zorg dat de Mystery-schil netjes aan staat als het niet ontgrendeld is
+    const overlay = document.getElementById('mysteryOverlay');
     if (drop.unlocked) {
-      if (timerInterval) clearInterval(timerInterval);
+      overlay.classList.add('hidden');
+      document.getElementById('activeTrackBadge').innerText = `🔓 ${drop.artist_name}`;
       document.getElementById('statusBadge').innerText = `🎉 Track Unlocked: ${drop.artist_name}`;
       document.getElementById('statusBadge').classList.add('success');
-      document.getElementById('timerText').innerText = `✅ Already unlocked!`;
-      document.getElementById('progressFill').style.width = '100%';
       document.getElementById('feedbackForm').style.display = 'none';
       document.getElementById('unlockedActions').style.display = 'flex';
       setupUnlockedButtons(drop);
+    } else {
+      overlay.classList.remove('hidden');
+      document.getElementById('activeTrackBadge').innerText = `🔒 MYSTERY DROP`;
+      document.getElementById('statusBadge').innerText = `💬 Listen directly inside Chatsong, then write your review to unlock the artist.`;
+      document.getElementById('statusBadge').classList.remove('success');
+      document.getElementById('feedbackForm').style.display = 'block';
+      document.getElementById('feedbackText').value = '';
+      document.getElementById('unlockedActions').style.display = 'none';
     }
 
     document.getElementById('submitCard').style.display = 'none';
     document.getElementById('playerCard').style.display = 'block';
   }
 
-  // Triggered automatically when they click the external SoundCloud/Bandcamp button
-  function onExternalListenClick() {
-    if (listenedSeconds === 0 && !timerInterval) {
-      startTimer();
-      document.getElementById('statusBadge').innerText = '🎵 Listening detected! Timer is running...';
-      document.getElementById('statusBadge').style.borderColor = 'var(--accent)';
-    }
-  }
-
-  function enableUnlock() {
-    document.getElementById('timerText').innerText = "✅ 30s listening completed!";
-    document.getElementById('statusBadge').innerText = "💬 Submit feedback below to reveal artist profile & links.";
-    const form = document.getElementById('feedbackForm');
-    form.style.opacity = "1";
-    form.style.pointerEvents = "auto";
-    document.getElementById('unlockBtn').disabled = false;
-  }
-
   async function unlockTrack() {
     const feedback = document.getElementById('feedbackText').value.trim();
     if (feedback.length < 10) {
-      alert("Please leave at least 10 characters of feedback.");
+      alert("Please leave at least 10 characters of feedback to unlock!");
       return;
     }
 
@@ -376,6 +331,8 @@
     drop.feedback = feedback;
     localStorage.setItem('chatsong_drops', JSON.stringify(dropsList));
 
+    // Direct plop! Verberg de mystery schil en onthul de artiest
+    document.getElementById('mysteryOverlay').classList.add('hidden');
     document.getElementById('activeTrackBadge').innerText = `🔓 ${drop.artist_name}`;
     const badge = document.getElementById('statusBadge');
     badge.innerText = `🎉 Artist Revealed: ${drop.artist_name}!`;
