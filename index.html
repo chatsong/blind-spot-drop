@@ -1,260 +1,298 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chatsong In-Blog Mystery Drop Widget</title>
+  <title>Chatsong - Mysterieus Hidden Gem Drop & Rewards</title>
   <style>
     :root {
-      --bg: #121216;
-      --card: #1a1a22;
+      --bg: #0f0f12;
+      --card: #18181f;
       --accent: #8b5cf6;
       --accent-hover: #7c3aed;
       --text: #ffffff;
       --muted: #a1a1aa;
-      --border: #2e2e38;
+      --border: #27272a;
       --success: #10b981;
+      --gold: #f59e0b;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .widget-container { width: 100%; max-width: 500px; background: var(--bg); color: var(--text); padding: 16px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+    body { background: var(--bg); color: var(--text); padding: 12px; display: flex; justify-content: center; min-height: 100vh; }
+    .app { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; margin: auto 0; }
     
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-    .badge { display: inline-block; background: rgba(139, 92, 246, 0.2); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; margin-bottom: 8px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+    .badge { display: inline-block; background: rgba(139, 92, 246, 0.2); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; margin-bottom: 12px; }
+    .badge-gold { background: rgba(245, 158, 11, 0.2); color: var(--gold); }
     
-    h3 { font-size: 1.1rem; margin-bottom: 4px; }
-    p.sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 12px; line-height: 1.3; }
+    h2 { font-size: 1.2rem; margin-bottom: 6px; }
+    p.sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; line-height: 1.4; }
 
-    .form-group { margin-bottom: 10px; }
-    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
-    input { width: 100%; padding: 10px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
-    input:focus { outline: none; border-color: var(--accent); }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+    input, textarea { width: 100%; padding: 12px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
+    input:focus, textarea:focus { outline: none; border-color: var(--accent); }
 
-    button { width: 100%; padding: 11px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.9rem; }
+    .divider { text-align: center; color: var(--muted); font-size: 0.75rem; margin: 10px 0; }
+
+    button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
     button:hover { background: var(--accent-hover); }
 
-    /* Player met Mystery Schil */
-    .player-box { position: relative; width: 100%; height: 160px; border-radius: 8px; overflow: hidden; background: #000; margin: 12px 0; border: 1px solid var(--border); }
-    .mask { position: absolute; inset: 0; background: rgba(26, 26, 34, 0.95); backdrop-filter: blur(6px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; text-align: center; z-index: 5; }
-    .mask.hidden { display: none; }
-    iframe { width: 100%; height: 160px; border: none; }
+    /* Player Container & Blind Masking */
+    .player-wrapper { position: relative; width: 100%; min-height: 180px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
+    
+    .mask-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #18181f;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: opacity 0.4s ease;
+      padding: 16px;
+      text-align: center;
+    }
 
-    /* Feed van de Blog */
-    .blog-feed { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
-    .blog-item { background: #22222b; border: 1px solid var(--border); padding: 10px 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
-    .blog-item:hover { border-color: var(--accent); }
-    .blog-item-info { display: flex; flex-direction: column; gap: 2px; }
-    .blog-title { font-size: 0.85rem; font-weight: bold; color: #fff; }
-    .blog-sub { font-size: 0.75rem; color: var(--muted); }
-    .status-tag { font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; background: rgba(139, 92, 246, 0.2); color: var(--accent); font-weight: bold; }
-    .status-tag.unlocked { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+    .mask-overlay.unlocked { opacity: 0; pointer-events: none; }
 
-    .action-panel { background: rgba(255,255,255,0.03); border: 1px dashed var(--border); padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 0.85rem; text-align: center; }
+    iframe { width: 100%; height: 180px; border: none; display: block; }
+    audio { width: 100%; margin-top: 10px; }
+
+    /* Progress & Timer */
+    .timer-box { margin: 12px 0; text-align: center; }
+    .progress-bar { width: 100%; height: 6px; background: #27272a; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+    .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s linear; }
+    .timer-text { font-size: 0.8rem; color: var(--muted); }
+
+    .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; border: 1px dashed var(--border); }
+    .status-badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success); }
+
+    .actions-box { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
+    .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
+    .share-btn { background: var(--gold); color: #000; }
   </style>
 </head>
 <body>
 
-<div class="widget-container">
+<div class="app">
 
-  <!-- TAB 1: INDIENEN OP DE BLOG -->
-  <div class="card" id="submitView">
-    <span class="badge">🎵 CHATSONG BLOG DROP</span>
-    <h3>Drop Your Track on this Blog</h3>
-    <p class="sub">Paste any music link (SoundCloud, YouTube Short, Spotify). It appears instantly below as a Mystery Track!</p>
+  <!-- STEP 1: SUBMIT & REWARDS INTRO -->
+  <div class="card" id="submitCard">
+    <span class="badge badge-gold">⭐ CHATSONG BLOG REWARDS</span>
+    <h2>Mysterieus Hidden Gem Drop</h2>
+    <p class="sub">Dien je track in of luister blind mee om beloningen te verdienen en leden te werven via onze blog!</p>
+
+    <div class="form-group">
+      <label>Platform Link / Mobile Share Link (YouTube Shorts, Spotify, SoundCloud)</label>
+      <input type="url" id="trackUrl" placeholder="Plak je link hier...">
+    </div>
+
+    <div class="divider">— OF UPLOAD MP3 —</div>
+
+    <div class="form-group">
+      <input type="file" id="fileInput" accept="audio/*">
+    </div>
+
+    <div class="form-group">
+      <label>Jouw Chatsong Gebruikersnaam (Voor punten & beloning)</label>
+      <input type="text" id="memberName" placeholder="Je gebruikersnaam...">
+    </div>
+
+    <button onclick="createDrop()">Start Hidden Gem Drop 🚀</button>
+  </div>
+
+  <!-- STEP 2: BLIND PLAYER VIEW -->
+  <div class="card" id="playerCard" style="display:none;">
+    <span class="badge">🔒 MYSTERY DROP SPELER</span>
     
-    <div class="form-group">
-      <label>Music Link (Mobile or Desktop)</label>
-      <input type="url" id="trackInput" placeholder="Paste link here...">
-    </div>
-    <div class="form-group">
-      <label>Your Artist Name (Kept secret until unlocked)</label>
-      <input type="text" id="artistInput" placeholder="e.g. Mystery Producer">
-    </div>
-    <button onclick="addTrack()">Publish Mystery Drop 🔥</button>
-  </div>
-
-  <!-- TAB 2: SPELER & ACTIE GATE (Geen omweg, direct in de widget) -->
-  <div class="card" id="playerView" style="display:none;">
-    <button style="background:#2e2e38; padding:6px 10px; font-size:0.8rem; width:auto; margin-bottom:8px;" onclick="backToMain()">← Back to List</button>
-    <span class="badge" id="playerBadge">🔒 MYSTERY TRACK</span>
-
-    <div class="player-box">
-      <div class="mask" id="playerMask">
-        <div style="font-size: 1.5rem; margin-bottom: 4px;">🕵️‍♂️</div>
-        <div style="font-weight: bold; font-size: 0.95rem; color: var(--accent);">Secret Blog Drop</div>
-        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 2px;">Listen to the pure sound! Log in to Chatsong below to reveal the artist.</div>
+    <div class="player-wrapper" id="playerWrapper">
+      <!-- Donkere afdeklaag -->
+      <div class="mask-overlay" id="maskOverlay">
+        <div style="font-size: 1.8rem; margin-bottom: 4px;">🎁</div>
+        <div style="font-weight: bold; font-size: 1.1rem;">Geheime Hidden Gem</div>
+        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;" id="platformDetect">Platform detecteren...</div>
       </div>
-      <div id="iframeContainer"></div>
+
+      <!-- Speler container -->
+      <div id="mediaContainer"></div>
     </div>
 
-    <div class="action-panel" id="actionPanel">
-      <p style="margin-bottom: 8px; color: var(--muted);">Want to see who made this & link it to your profile?</p>
+    <!-- Timer -->
+    <div class="timer-box">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="timer-text" id="timerText">Luister 30 seconden om beloning te ontgrendelen...</div>
+    </div>
+
+    <div class="status-badge" id="statusBadge">
+      ▶ Start de muziek hierboven om de belonings-timer te starten.
+    </div>
+
+    <!-- Feedback / Beloningsformulier -->
+    <div id="feedbackForm" style="opacity: 0.4; pointer-events: none; margin-top: 12px;">
       <div class="form-group">
-        <input type="text" id="chatsongUser" placeholder="Enter your Chatsong Account Name">
+        <label>Eerlijke feedback (Min. 10 tekens)</label>
+        <textarea id="feedbackText" rows="3" placeholder="Wat vind je van de productie, mix of vibe?"></textarea>
       </div>
-      <button onclick="unlockArtist()" style="background: var(--success);">Link Account & Reveal Artist 🎉</button>
+      <button onclick="unlockTrack()" id="unlockBtn" disabled>Claim Beloning & Ontgrendel Artiest 🔓</button>
     </div>
 
-    <div id="unlockedInfo" style="display:none; text-align:center; font-size:0.9rem; color: var(--success); font-weight: bold; margin-top: 8px;">
-      ⭐ Artist Revealed: <span id="revealedName"></span> (Linked to Chatsong)
+    <!-- Unlocked State & Deelknop met vaste Blog URL -->
+    <div class="actions-box" id="unlockedActions">
+      <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Originele Track</a>
+      <button class="action-btn share-btn" onclick="shareBlog()">📲 Deel deze Blog & Krijg Extra Punten 🚀</button>
     </div>
-  </div>
-
-  <!-- TAB 3: DE LIVE BLOG LIJST (Waar iedereen op kan drukken) -->
-  <div class="card">
-    <span class="badge">📃 LIVE BLOG TRACKS</span>
-    <h3>Community Playlist</h3>
-    <p class="sub">Click any track to listen and interact directly.</p>
-    <div class="blog-feed" id="blogFeed"></div>
   </div>
 
 </div>
 
 <script>
-  // Opgeslagen in opslag zodat het op de blog blijft werken
-  let blogTracks = JSON.parse(localStorage.getItem('chatsong_blog_widget')) || [
-    { id: 1, title: "Blog Vibe #1", artist: "Underground Talent", link: "https://soundcloud.com", platform: "SoundCloud", unlocked: false, user: "" },
-    { id: 2, title: "Short Clip #2", artist: "Secret Beatmaker", link: "https://youtube.com", platform: "YouTube / Shorts", unlocked: false, user: "" }
-  ];
+  // Vaste Blog URL voor ledenwerving en beloning
+  const blogUrl = "https://chatsong.nl/blog/1642-mysterieus-hidden-gem-drop";
 
-  let currentTrackId = null;
+  let rawLink = '';
+  let listenedSeconds = 0;
+  const requiredSeconds = 30;
+  let timerInterval = null;
 
-  window.onload = renderFeed;
+  function createDrop() {
+    const urlInput = document.getElementById('trackUrl').value.trim();
+    const fileInput = document.getElementById('fileInput');
+    const memberName = document.getElementById('memberName').value.trim();
+    const container = document.getElementById('mediaContainer');
+    const platformDetect = document.getElementById('platformDetect');
 
-  function addTrack() {
-    const url = document.getElementById('trackInput').value.trim();
-    const artist = document.getElementById('artistInput').value.trim() || 'Anonymous';
-
-    if (!url) {
-      alert("Please paste a track link.");
+    if (!urlInput && fileInput.files.length === 0) {
+      alert("Voer een muzieklink in of selecteer een MP3-bestand.");
       return;
     }
 
-    const parsed = parseLink(url);
-    const newTrack = {
-      id: Date.now(),
-      title: `Drop #${blogTracks.length + 1} (${parsed.platform})`,
-      artist: artist,
-      link: url,
-      embedUrl: parsed.embedUrl,
-      platform: parsed.platform,
-      unlocked: false,
-      user: ""
-    };
+    container.innerHTML = '';
+    rawLink = urlInput;
 
-    blogTracks.unshift(newTrack);
-    saveAndRender();
+    if (fileInput.files.length > 0) {
+      platformDetect.innerText = "Bron: Geüpload Bestand";
+      const audioUrl = URL.createObjectURL(fileInput.files[0]);
+      container.innerHTML = `<audio id="blindAudio" controls src="${audioUrl}"></audio>`;
+      setupAudioListener(document.getElementById('blindAudio'));
+    } else {
+      const parsed = parseMediaUrl(urlInput);
+      platformDetect.innerText = `Platform: ${parsed.platform}`;
+      
+      if (parsed.type === 'iframe') {
+        container.innerHTML = `<iframe src="${parsed.embedUrl}" allow="autoplay; encrypted-media"></iframe>`;
+        startTimer(); // Start direct timer voor iframes (YouTube/Spotify/SoundCloud)
+      } else {
+        container.innerHTML = `<audio id="blindAudio" controls src="${urlInput}"></audio>`;
+        setupAudioListener(document.getElementById('blindAudio'));
+      }
+    }
 
-    document.getElementById('trackInput').value = '';
-    document.getElementById('artistInput').value = '';
-
-    // Direct openen zodat de indiener meteen zijn nummer ziet staan!
-    selectTrack(newTrack.id);
+    document.getElementById('submitCard').style.display = 'none';
+    document.getElementById('playerCard').style.display = 'block';
   }
 
-  function parseLink(url) {
-    if (url.includes('soundcloud.com') || url.includes('on.soundcloud.com')) {
-      return {
-        platform: 'SoundCloud',
-        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`
-      };
-    }
+  // Universele URL Parser (Shorts, Spotify, YouTube, SoundCloud)
+  function parseMediaUrl(url) {
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
-      return {
-        platform: 'YouTube / Shorts',
-        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}`
+      return { 
+        type: 'iframe', 
+        platform: 'YouTube / Shorts', 
+        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1` 
       };
     }
-    const spotifyMatch = url.match(/(?:open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:track|episode)\/|spotify:track:)([a-zA-Z0-9]+)/);
+
+    const spotifyMatch = url.match(/open\.spotify\.com\/(track|episode)\/([a-zA-Z0-9]+)/);
     if (spotifyMatch) {
-      return {
-        platform: 'Spotify',
-        embedUrl: `https://open.spotify.com/embed/track/${spotifyMatch[1]}?utm_source=generator`
+      return { 
+        type: 'iframe', 
+        platform: 'Spotify', 
+        embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator` 
       };
     }
-    return { platform: 'Web Audio', embedUrl: url };
-  }
 
-  function renderFeed() {
-    const feed = document.getElementById('blogFeed');
-    feed.innerHTML = '';
-
-    blogTracks.forEach(t => {
-      const div = document.createElement('div');
-      div.className = 'blog-item';
-      div.onclick = () => selectTrack(t.id);
-
-      div.innerHTML = `
-        <div class="blog-item-info">
-          <div class="blog-title">${t.unlocked ? '🔓 ' + t.artist : '🔒 Mystery Track'}</div>
-          <div class="blog-sub">${t.platform} • Click to listen</div>
-        </div>
-        <div class="status-tag ${t.unlocked ? 'unlocked' : ''}">
-          ${t.unlocked ? 'Unlocked' : 'Listen'}
-        </div>
-      `;
-      feed.appendChild(div);
-    });
-  }
-
-  function saveAndRender() {
-    localStorage.setItem('chatsong_blog_widget', JSON.stringify(blogTracks));
-    renderFeed();
-  }
-
-  function selectTrack(id) {
-    currentTrackId = id;
-    const track = blogTracks.find(t => t.id === id);
-    if (!track) return;
-
-    document.getElementById('submitView').style.display = 'none';
-    document.getElementById('playerView').style.display = 'block';
-
-    const container = document.getElementById('iframeContainer');
-    container.innerHTML = `<iframe src="${track.embedUrl || track.link}" allow="encrypted-media"></iframe>`;
-
-    const mask = document.getElementById('playerMask');
-    const actionPanel = document.getElementById('actionPanel');
-    const unlockedInfo = document.getElementById('unlockedInfo');
-
-    if (track.unlocked) {
-      mask.classList.add('hidden');
-      document.getElementById('playerBadge').innerText = `🔓 REVEALED BY ${track.user.toUpperCase()}`;
-      actionPanel.style.display = 'none';
-      unlockedInfo.style.display = 'block';
-      document.getElementById('revealedName').innerText = track.artist;
-    } else {
-      mask.classList.remove('hidden');
-      document.getElementById('playerBadge').innerText = `🔒 MYSTERY BLOG DROP`;
-      actionPanel.style.display = 'block';
-      unlockedInfo.style.display = 'none';
-      document.getElementById('chatsongUser').value = '';
+    if (url.includes('soundcloud.com')) {
+      return { 
+        type: 'iframe', 
+        platform: 'SoundCloud', 
+        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=false` 
+      };
     }
+
+    return { type: 'audio', platform: 'Directe Audio Stream', embedUrl: url };
   }
 
-  function unlockArtist() {
-    const user = document.getElementById('chatsongUser').value.trim();
-    if (!user) {
-      alert("Please enter your Chatsong account name to link and reveal!");
+  function setupAudioListener(audioEl) {
+    audioEl.addEventListener('play', () => startTimer());
+    audioEl.addEventListener('pause', () => clearInterval(timerInterval));
+  }
+
+  function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    
+    timerInterval = setInterval(() => {
+      if (listenedSeconds < requiredSeconds) {
+        listenedSeconds++;
+        const percent = (listenedSeconds / requiredSeconds) * 100;
+        document.getElementById('progressFill').style.width = percent + '%';
+        
+        const remaining = requiredSeconds - listenedSeconds;
+        document.getElementById('timerText').innerText = `Nog ${remaining} seconden luisteren...`;
+      } else {
+        clearInterval(timerInterval);
+        enableUnlock();
+      }
+    }, 1000);
+  }
+
+  function enableUnlock() {
+    document.getElementById('timerText').innerText = "✅ 30 seconden luisteren voltooid!";
+    document.getElementById('statusBadge').innerText = "💬 Geef feedback om je beloning te claimen en de artiest te ontgrendelen.";
+    
+    const form = document.getElementById('feedbackForm');
+    form.style.opacity = "1";
+    form.style.pointerEvents = "auto";
+    document.getElementById('unlockBtn').disabled = false;
+  }
+
+  function unlockTrack() {
+    const feedback = document.getElementById('feedbackText').value.trim();
+    if (feedback.length < 10) {
+      alert("Geef ten minste 10 tekens aan feedback op.");
       return;
     }
 
-    const track = blogTracks.find(t => t.id === currentTrackId);
-    if (track) {
-      track.unlocked = true;
-      track.user = user;
-      saveAndRender();
-      selectTrack(track.id);
-      alert(`Success! Account linked and artist revealed! 🎉`);
+    // Verberg maskering zodat de track zichtbaar/ontgrendeld wordt
+    document.getElementById('maskOverlay').classList.add('unlocked');
+
+    // Status update
+    const badge = document.getElementById('statusBadge');
+    badge.innerText = "🎉 Beloning toegekend & Artiest Ontgrendeld!";
+    badge.classList.add('success');
+
+    // Toon knoppen voor originele link en delen van de blog
+    document.getElementById('unlockedActions').style.display = 'flex';
+    if (rawLink) {
+      document.getElementById('originalLinkBtn').href = rawLink;
     }
+
+    document.getElementById('unlockBtn').style.display = 'none';
   }
 
-  function backToMain() {
-    document.getElementById('playerView').style.display = 'none';
-    document.getElementById('submitView').style.display = 'block';
-    renderFeed();
+  // Deel de officiële blog URL voor ledenwerving (werkt op mobiel en desktop)
+  function shareBlog() {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Mysterieus Hidden Gem Drop - Chatsong',
+        text: 'Luister mee op de Chatsong blog, geef je oordeel en verdien beloningen!',
+        url: blogUrl
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(blogUrl);
+      alert("Officiële blog link gekopieerd: " + blogUrl + "\nDeel hem met vrienden om extra punten te verdienen!");
+    }
   }
 </script>
 
