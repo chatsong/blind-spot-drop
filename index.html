@@ -19,9 +19,10 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 16px 12px 40px 12px; display: flex; justify-content: center; min-height: 100vh; }
-    .app { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; }
+    .container { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 16px; }
     
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+    /* Chatsong Blog Stijl Cards */
+    .form-card, .track-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
     .badge { display: inline-block; background: rgba(139, 92, 246, 0.2); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; margin-bottom: 12px; }
     .badge-gold { background: rgba(245, 158, 11, 0.2); color: var(--gold); }
     
@@ -39,7 +40,7 @@
     button:hover { background: var(--accent-hover); }
 
     /* Player Container & Blind Masking */
-    .player-wrapper { position: relative; width: 100%; min-height: 166px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
+    .player-container { position: relative; width: 100%; min-height: 166px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
     
     .mask-overlay {
       position: absolute;
@@ -54,7 +55,6 @@
       padding: 16px;
       text-align: center;
     }
-
     .mask-overlay.unlocked { opacity: 0; pointer-events: none; }
 
     iframe { width: 100%; height: 166px; border: none; display: block; }
@@ -69,35 +69,33 @@
     .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; border: 1px dashed var(--border); }
     .status-badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success); }
 
-    .actions-box { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
+    /* Action bar zoals op de blog */
+    .action-bar { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
     .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
     .blog-btn { background: var(--gold); color: #000; }
     .next-drop-btn { background: var(--success); color: #fff; margin-top: 4px; }
 
-    /* Genummerde lijst (1, 2, 3, 4...) onder elkaar */
-    .submissions-list-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
-    .reward-banner { background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(139,92,246,0.2)); border: 1px solid var(--gold); border-radius: 10px; padding: 12px; margin-bottom: 14px; text-align: center; }
-    .reward-title { font-size: 0.85rem; font-weight: bold; color: var(--gold); margin-bottom: 2px; }
-    .reward-desc { font-size: 0.75rem; color: var(--muted); }
+    /* Feed & Track Cards Stijl */
+    .feed-header { background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(139,92,246,0.2)); border: 1px solid var(--gold); border-radius: 12px; padding: 14px; text-align: center; margin-bottom: 4px; }
+    .feed-title { font-size: 0.9rem; font-weight: bold; color: var(--gold); margin-bottom: 2px; }
+    .feed-desc { font-size: 0.75rem; color: var(--muted); }
 
-    .sub-item { background: #22222b; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start; }
-    .sub-number { background: var(--gold); color: #000; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; flex-shrink: 0; }
-    .sub-content { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; }
-    .sub-item-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--muted); }
-    .sub-item-title { font-weight: bold; font-size: 0.9rem; color: #fff; text-decoration: none; word-break: break-all; }
-    .sub-item-title:hover { color: var(--accent); }
-    .sub-item-reason { font-size: 0.8rem; color: var(--muted); font-style: italic; }
+    .track-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
+    .track-title-link { font-weight: bold; font-size: 0.95rem; color: #fff; text-decoration: none; word-break: break-all; display: block; margin-bottom: 6px; }
+    .track-title-link:hover { color: var(--accent); }
+    .track-reason { font-size: 0.85rem; color: var(--muted); font-style: italic; background: #22222b; padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--gold); }
+    .track-number-badge { background: var(--gold); color: #000; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 0.75rem; }
   </style>
 </head>
 <body>
 
-<div class="app">
+<div class="container">
 
-  <!-- STEP 1: SUBMIT -->
-  <div class="card" id="submitCard">
+  <!-- STAP 1: FORMULIER (SUBMIT) -->
+  <div class="form-card" id="submitCard">
     <span class="badge badge-gold">💎 CHATSONG HIDDEN GEM DROP (2026)</span>
     <h2>Submit Track or Mobile Share Link</h2>
-    <p class="sub">Drop your Spotify, SoundCloud, YouTube or Mixcloud link to enter the chart!</p>
+    <p class="sub">Drop your Spotify, SoundCloud, YouTube or Mixcloud link to enter the live chart!</p>
 
     <div class="form-group">
       <label>Platform Link / Mobile Share Link</label>
@@ -123,11 +121,11 @@
     <button onclick="createDrop()">1. Launch Mystery Drop 🚀</button>
   </div>
 
-  <!-- STEP 2: PLAYER & WHY YOU SUBMIT THIS TRACK -->
-  <div class="card" id="playerCard" style="display:none;">
+  <!-- STAP 2: PLAYER & REASON (BLIND DROP) -->
+  <div class="form-card" id="playerCard" style="display:none;">
     <span class="badge" id="roleBadge">🔒 MYSTERY DROP ACTIVE</span>
     
-    <div class="player-wrapper" id="playerWrapper">
+    <div class="player-container" id="playerWrapper">
       <div class="mask-overlay" id="maskOverlay">
         <div style="font-size: 1.8rem; margin-bottom: 4px;">🎵</div>
         <div style="font-weight: bold; font-size: 1.05rem; color: #fff;">Hidden Track Loading...</div>
@@ -153,25 +151,25 @@
       <button onclick="unlockTrack()" id="unlockBtn">3. Press Now to See the Track Live in the Chart 🔓</button>
     </div>
 
-    <div class="actions-box" id="unlockedActions">
+    <div class="action-bar" id="unlockedActions">
       <div style="background: rgba(245,158,11,0.15); border: 1px solid var(--gold); border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 6px;">
-        <div style="font-weight: bold; color: var(--gold); font-size: 0.85rem;">🏆 VIP Chart Reward Unlocked!</div>
-        <div style="font-size: 0.75rem; color: var(--muted);">Your track has successfully secured a numbered position below.</div>
+        <div style="font-weight: bold; color: var(--gold); font-size: 0.85rem;">🏆 Thanks for submitting! Open the blog post to see your artist live!</div>
+        <div style="font-size: 0.75rem; color: var(--muted);">Your track is now safely registered in the permanent public chart below.</div>
       </div>
       <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Original Track</a>
-      <a href="https://chatsong.nl/blog/1642-mysterieus-hidden-gem-drop" target="_blank" class="action-btn blog-btn">🏆 Open Chatsong Blog Chart & View Live! 🚀</a>
+      <a href="https://chatsong.nl/blog/1642-mysterieus-hidden-gem-drop" target="_blank" class="action-btn blog-btn">🏆 Open Chatsong Blog Post & View Live! 🚀</a>
       <button class="action-btn next-drop-btn" onclick="resetToSubmit()">➕ Brilliant drop! Want to submit another one? 🚀</button>
     </div>
   </div>
 
-  <!-- GENUMMERDE LIJST (1, 2, 3, 4...) -->
-  <div class="submissions-list-card" id="submissionsCard">
-    <div class="reward-banner">
-      <div class="reward-title">🌟 LIVE CHART FEED (1, 2, 3...)</div>
-      <div class="reward-desc">Check out the latest submitted gems from Google Sheets!</div>
+  <!-- FEED CONTAINER (GEUPLOADDE TRACKS ALS CHATSONG TRACK-CARDS ONDER ELKAAR) -->
+  <div id="feed" style="display: flex; flex-direction: column; gap: 12px;">
+    <div class="feed-header">
+      <div class="feed-title">🌟 PERMANENT LIVE TRACK-CARDS FEED</div>
+      <div class="feed-desc">All submitted tracks loaded directly from the database, styled like the Chatsong blog!</div>
     </div>
-    <div id="submissionsList">
-      <!-- Wordt dynamisch geladen -->
+    <div id="trackCardsList">
+      <div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">Loading live track-cards from database...</div>
     </div>
   </div>
 
@@ -181,7 +179,6 @@
   let rawLink = '';
   let currentRoleText = '';
   let currentEmbedUrl = '';
-  let currentRowId = null;
   let countdownTimer = null;
   const totalWaitSeconds = 3;
 
@@ -189,10 +186,47 @@
   const GOOGLE_SCRIPT_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnS9JK4XmKRuOCofOc9SH4iY1XpC4kj5TOIRxhUufk9ShMqK2dCPGVRLef6bsUN5L_TTU2ET_Kgv5wM_NHx3bvQUFjkOjzvta7gQTsFmevpTei7R1I6-gO7r90opMzAcOBr4kytc301XcQQBj8wsbobxUpbxJCIW9PzJ8YxF5m7HLXpbr_QXNbP9LzUUn-BdY_5fLIUU6U_JwcFv8wY9DrKATC0gWwuOyQGGNcA7h9aqUJxpvJxVJRRoC_cAy7OZuramvm0D5G6_vzhv_KHWA5cXsoIeEg&lib=MU40vuj27Wvf99T-4_4aqO0-DGdiQLF-5';
 
   window.onload = function() {
-    renderSubmissions();
+    fetchLiveFeed();
   };
 
-  async function createDrop() {
+  function fetchLiveFeed() {
+    const listContainer = document.getElementById('trackCardsList');
+    
+    fetch(GOOGLE_SCRIPT_URL)
+      .then(response => response.json())
+      .then(submissions => {
+        if (!submissions || submissions.length === 0) {
+          listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">No tracks submitted yet. Be the first track-card!</div>`;
+          return;
+        }
+
+        let html = '';
+        submissions.forEach((sub, index) => {
+          let positionNumber = index + 1;
+          let displayTitle = sub.link.length > 45 ? sub.link.substring(0, 42) + '...' : sub.link;
+          
+          // Exact dezelfde Chatsong blog track-card opbouw
+          html += `
+            <div class="track-card" id="track-card_${index}">
+              <div class="track-header">
+                <span>👤 ${sub.role}</span>
+                <span class="track-number-badge">#${positionNumber}</span>
+                <span>📅 ${sub.date}</span>
+              </div>
+              <a href="${sub.link.startsWith('http') ? sub.link : '#'}" target="_blank" class="track-title-link">🎵 ${displayTitle}</a>
+              <div class="track-reason">"${sub.reason || 'No description provided'}"</div>
+            </div>
+          `;
+        });
+        listContainer.innerHTML = html;
+      })
+      .catch(err => {
+        console.error("Error loading feed:", err);
+        listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">Could not load track-cards feed right now. Please refresh.</div>`;
+      });
+  }
+
+  function createDrop() {
     let urlInput = document.getElementById('trackUrl').value.trim();
     const fileInput = document.getElementById('fileInput');
     const role = document.getElementById('submitterRole').value;
@@ -223,32 +257,10 @@
       container.innerHTML = `<iframe src="${currentEmbedUrl}" allow="autoplay; encrypted-media"></iframe>`;
     }
 
-    // Direct opslaan via POST (actie 'add') in de Google Sheet om een rijnummer te krijgen
-    try {
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'add',
-          artist_name: currentRoleText,
-          raw_link: rawLink,
-          profile_link: rawLink,
-          platform: platform,
-          embed_url: currentEmbedUrl,
-          btn_text: "Open Track"
-        })
-      });
-      console.log("Added to sheet successfully");
-    } catch(err) {
-      console.log("Add error:", err);
-    }
-
     document.getElementById('submitCard').style.display = 'none';
     document.getElementById('playerCard').style.display = 'block';
 
     startAutoTimer();
-    renderSubmissions();
   }
 
   function parseMediaUrl(url) {
@@ -291,42 +303,38 @@
     }, 1000);
   }
 
-  async function unlockTrack() {
+  function unlockTrack() {
     const feedback = document.getElementById('feedbackText').value.trim();
     if (feedback.length < 10) {
       alert("Please write at least 10 characters explaining why you submitted this track.");
       return;
     }
 
-    // We halen de data op om de laatst toegevoegde rij van deze sessie te vinden en te unlocken
-    try {
-      const res = await fetch(GOOGLE_SCRIPT_URL);
-      const data = await res.json();
-      if (data && data.length > 0) {
-        // Pak de laatst toegevoegde rij (meestal de onderste of meest recente)
-        const lastItem = data[data.length - 1];
-        currentRowId = lastItem.row;
+    let platform = "Direct Link";
+    if (rawLink.includes('youtube') || rawLink.includes('youtu.be')) platform = 'YouTube / Shorts';
+    else if (rawLink.includes('spotify')) platform = 'Spotify';
+    else if (rawLink.includes('soundcloud')) platform = 'SoundCloud';
 
-        // Stuur unlock actie naar Google Script
-        await fetch(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'unlock',
-            row: currentRowId,
-            feedback: feedback
-          })
-        });
-      }
-    } catch(err) {
-      console.log("Unlock sync error:", err);
-    }
+    // Opslaan in Google Sheets database zodat het permanent op de blog en GitHub blijft staan
+    fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'add',
+        artist_name: currentRoleText,
+        raw_link: rawLink,
+        platform: platform,
+        reason: feedback
+      })
+    }).then(() => {
+      setTimeout(fetchLiveFeed, 1500);
+    }).catch(err => console.log("Sheet log note:", err));
 
     document.getElementById('maskOverlay').classList.add('unlocked');
 
     const badge = document.getElementById('statusBadge');
-    badge.innerText = "🎉 Track Successfully Registered for the Chart!";
+    badge.innerText = "🎉 Track Successfully Registered as a Track-Card!";
     badge.classList.add('success');
 
     document.getElementById('unlockedActions').style.display = 'flex';
@@ -337,57 +345,10 @@
     }
 
     document.getElementById('feedbackForm').style.display = 'none';
-    
-    // Herlaad direct de lijst zodat de feedback erbij staat
-    renderSubmissions();
 
     setTimeout(() => {
-      document.getElementById('submissionsCard').scrollIntoView({ behavior: 'smooth' });
+      document.getElementById('feed').scrollIntoView({ behavior: 'smooth' });
     }, 300);
-  }
-
-  async function renderSubmissions() {
-    const listContainer = document.getElementById('submissionsList');
-    listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 10px;">Loading live chart from Google Sheets...</div>`;
-
-    try {
-      const response = await fetch(GOOGLE_SCRIPT_URL);
-      let submissions = await response.json();
-
-      if (!submissions || submissions.length === 0) {
-        listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 10px;">No tracks submitted yet. Be #1!</div>`;
-        return;
-      }
-
-      let html = '';
-      // We lopen door de rijen en nummeren ze netjes 1, 2, 3...
-      submissions.forEach((sub, index) => {
-        let linkText = sub.raw_link || '#';
-        let displayTitle = linkText.length > 38 ? linkText.substring(0, 35) + '...' : linkText;
-        let positionNumber = index + 1; // 1, 2, 3, 4...
-        let reasonText = sub.feedback ? `"${sub.feedback}"` : "<i>(Waiting for unlock feedback...)</i>";
-        let roleText = sub.artist_name || 'CHART DROP';
-
-        html += `
-          <div class="sub-item">
-            <div class="sub-number">${positionNumber}</div>
-            <div class="sub-content">
-              <div class="sub-item-header">
-                <span>${roleText}</span>
-                <span>Row #${sub.row}</span>
-              </div>
-              <a href="${linkText.startsWith('http') ? linkText : '#'}" target="_blank" class="sub-item-title">🎵 ${displayTitle}</a>
-              <div class="sub-item-reason">${reasonText}</div>
-            </div>
-          </div>
-        `;
-      });
-      listContainer.innerHTML = html;
-
-    } catch (error) {
-      console.error("Error loading live feed:", error);
-      listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 10px;">Could not load live chart feed. Try refreshing.</div>`;
-    }
   }
 
   function resetToSubmit() {
@@ -405,6 +366,8 @@
     document.getElementById('playerCard').style.display = 'none';
     document.getElementById('submitCard').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    fetchLiveFeed();
   }
 </script>
 
