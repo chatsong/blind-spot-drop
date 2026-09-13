@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chatsong - Universal Blind Drop Chart</title>
-
+  <title>Chatsong - Universal Blind Drop</title>
   <style>
     :root {
       --bg: #0f0f12;
@@ -33,44 +32,54 @@
     input, textarea { width: 100%; padding: 12px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
     input:focus, textarea:focus { outline: none; border-color: var(--accent); }
 
+    .divider { text-align: center; color: var(--muted); font-size: 0.75rem; margin: 10px 0; }
+
     button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
     button:hover { background: var(--accent-hover); }
 
+    /* FULL BLIND PLAYER CONTAINER */
     .player-wrapper { 
       position: relative; 
       width: 100%; 
-      height: 152px; 
+      height: 160px; 
       border-radius: 12px; 
       overflow: hidden; 
       background: #000; 
-      margin: 12px 0; 
+      margin: 16px 0; 
       border: 1px solid var(--border); 
     }
-
-    .blind-cover-mask {
+    
+    /* Afdeklaag bedekt NU 100% van het scherm! */
+    .mask-overlay {
       position: absolute;
-      top: 0; left: 0;
-      width: calc(100% - 75px);
-      height: 100%;
+      top: 0; left: 0; width: 100%; height: 100%;
       background: #18181f;
-      z-index: 10;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 12px;
-      text-align: center;
-      border-right: 1px solid var(--border);
+      z-index: 20;
       transition: opacity 0.4s ease;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
     }
 
-    .blind-cover-mask.spotify-mask { width: calc(100% - 75px); left: 0; }
-    .blind-cover-mask.soundcloud-mask { width: calc(100% - 70px); left: 70px; border-left: 1px solid var(--border); border-right: none; }
-    .blind-cover-mask.youtube-mask { height: 55px; width: 100%; top: 0; border-bottom: 1px solid var(--border); border-right: none; }
-    .blind-cover-mask.unlocked { opacity: 0; pointer-events: none; display: none !important; }
+    .mask-overlay.unlocked { opacity: 0; pointer-events: none; display: none !important; }
+
+    .play-btn-circle {
+      width: 50px; height: 50px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 8px; font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    }
 
     iframe { width: 100%; height: 100%; border: none; display: block; }
+    audio { width: 100%; height: 50px; margin-top: 55px; }
 
+    /* Progress & Timer */
     .timer-box { margin: 12px 0; text-align: center; }
     .progress-bar { width: 100%; height: 6px; background: #27272a; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
     .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s linear; }
@@ -101,7 +110,7 @@
 
 <div class="app">
 
-  <!-- FORMULIER -->
+  <!-- INZENDEN -->
   <div class="card" id="submitCard">
     <span class="badge">👁️ UNIVERSAL BLIND DROP</span>
     <h2>Submit Track or Short</h2>
@@ -125,27 +134,28 @@
     <button onclick="createDrop()">Add Track & Launch Stream Player 🚀</button>
   </div>
 
-  <!-- SPELER -->
+  <!-- BLIND SPELER -->
   <div class="card" id="playerCard" style="display:none;">
-    <span class="badge" id="activeTrackBadge">🔒 MYSTERY DROP #1</span>
+    <span class="badge" id="activeTrackBadge">🔒 MYSTERY DROP</span>
     
     <div class="player-wrapper" id="playerWrapper">
-      <div class="blind-cover-mask" id="blindMask">
-        <div style="font-size: 1.4rem; margin-bottom: 2px;">🔒</div>
-        <div style="font-weight: bold; font-size: 0.95rem;">Hidden Artist & Track</div>
-        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 2px;" id="platformDetect">Detecting platform...</div>
+      <!-- 100% Blinde overlay -->
+      <div class="mask-overlay" id="maskOverlay" onclick="startAudio()">
+        <div class="play-btn-circle">▶</div>
+        <div style="font-weight: bold; font-size: 1rem;">Click to Start Listening</div>
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;" id="platformDetect">Detecting platform...</div>
       </div>
 
-      <div id="mediaContainer" style="width:100%; height:100%;"></div>
+      <div id="mediaContainer"></div>
     </div>
 
     <div class="timer-box">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="timer-text" id="timerText">Click PLAY inside the player to start listening...</div>
+      <div class="timer-text" id="timerText">Click the player above to start...</div>
     </div>
 
     <div class="status-badge" id="statusBadge">
-      ▶ Click Play directly inside the player to hear sound & start 30s unlock timer.
+      ▶ Click the player to start audio & 30s unlock timer.
     </div>
 
     <div id="feedbackForm" style="opacity: 0.4; pointer-events: none; margin-top: 12px;">
@@ -157,14 +167,14 @@
     </div>
 
     <div class="actions-box" id="unlockedActions">
-      <a href="#" target="_blank" class="action-btn platform-btn" id="originalLinkBtn">⭐ Stream & Save on Official Platform</a>
-      <a href="#" target="_blank" class="action-btn chatsong-btn" id="artistProfileBtn" style="display:none;">👤 View Artist Profile & Socials</a>
+      <a href="#" target="_blank" class="action-btn platform-btn" id="originalLinkBtn">⭐ Stream on Official Platform</a>
+      <a href="#" target="_blank" class="action-btn chatsong-btn" id="artistProfileBtn" style="display:none;">👤 View Artist Profile</a>
       <button class="action-btn share-btn" onclick="shareDrop()">📲 Share Blind Drop</button>
       <button class="action-btn new-drop-btn" onclick="resetToSubmit()">➕ Submit Another Track</button>
     </div>
   </div>
 
-  <!-- CHART FEED -->
+  <!-- FEED / CHART -->
   <div class="card" id="chartCard" style="display:none;">
     <span class="badge">📊 REVEALED ARTISTS CHART</span>
     <h2>Submitted Tracks & Revealed Artists</h2>
@@ -174,7 +184,7 @@
 </div>
 
 <script>
-  // PLAK HIERONDER JOUW GOOGLE APPS SCRIPT WEB-APP URL
+  // PLAK HIER JOUW GOOGLE APPS SCRIPT WEB-APP URL
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbypLzox45epM9g2YdhLShZZCOZYWDbuIOBVskB-mGTlvzSpRpk0m3xnpBC9zMjGW3x9/exec';
 
   let dropsList = [];
@@ -202,7 +212,6 @@
     if (spotifyMatch) {
       return { 
         platform: 'Spotify', 
-        maskClass: 'spotify-mask',
         embedUrl: `https://open.spotify.com/embed/track/${spotifyMatch[1]}?utm_source=generator`,
         btnText: '💚 Stream & Save on Spotify'
       };
@@ -211,8 +220,7 @@
     if (url.includes('soundcloud.com')) {
       return { 
         platform: 'SoundCloud', 
-        maskClass: 'soundcloud-mask',
-        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`,
+        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=false`,
         btnText: '☁️ Stream on SoundCloud'
       };
     }
@@ -221,13 +229,12 @@
     if (ytMatch) {
       return { 
         platform: 'YouTube', 
-        maskClass: 'youtube-mask',
-        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?enablejsapi=1`,
+        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&enablejsapi=1`,
         btnText: '🔔 Stream on YouTube'
       };
     }
 
-    return { platform: 'Web Audio', maskClass: 'spotify-mask', embedUrl: url, btnText: '🎧 Open Platform Link' };
+    return { platform: 'Web Audio', embedUrl: url, btnText: '🎧 Open Platform Link' };
   }
 
   async function createDrop() {
@@ -248,7 +255,6 @@
       raw_link: urlInput,
       profile_link: profileLink,
       platform: platformData.platform,
-      mask_class: platformData.maskClass,
       embed_url: platformData.embedUrl,
       btn_text: platformData.btnText
     };
@@ -275,19 +281,19 @@
     timerInterval = null;
 
     const container = document.getElementById('mediaContainer');
-    const mask = document.getElementById('blindMask');
+    const mask = document.getElementById('maskOverlay');
     container.innerHTML = '';
 
     document.getElementById('activeTrackBadge').innerText = `🔒 MYSTERY DROP #${drop.id}`;
     document.getElementById('platformDetect').innerText = `Platform: ${drop.platform}`;
 
-    mask.className = `blind-cover-mask ${drop.mask_class || 'spotify-mask'}`;
-    container.innerHTML = `<iframe id="mediaIframe" src="${drop.embed_url}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+    mask.classList.remove('unlocked');
+    container.innerHTML = `<iframe id="mediaIframe" src="${drop.embed_url}" allow="autoplay; encrypted-media"></iframe>`;
 
     document.getElementById('progressFill').style.width = '0%';
-    document.getElementById('timerText').innerText = 'Click PLAY inside the player to start...';
+    document.getElementById('timerText').innerText = 'Click to start listening...';
     document.getElementById('statusBadge').className = 'status-badge';
-    document.getElementById('statusBadge').innerText = '▶ Click Play on the player to hear sound & start timer.';
+    document.getElementById('statusBadge').innerText = '▶ Click player to hear sound & start timer.';
     
     document.getElementById('feedbackForm').style.display = 'block';
     document.getElementById('feedbackForm').style.opacity = '0.4';
@@ -306,10 +312,21 @@
 
     document.getElementById('submitCard').style.display = 'none';
     document.getElementById('playerCard').style.display = 'block';
+  }
 
-    document.getElementById('playerWrapper').addEventListener('click', () => {
-      if (!timerInterval && !dropsList[currentDropIndex].unlocked) startTimer();
-    }, { once: true });
+  function startAudio() {
+    if (!timerInterval && !dropsList[currentDropIndex].unlocked) {
+      // Refresh iframe met autoplay
+      const iframe = document.getElementById('mediaIframe');
+      if (iframe) {
+        let src = iframe.src;
+        if (!src.includes('autoplay=1')) {
+          src += (src.includes('?') ? '&' : '?') + 'autoplay=1';
+          iframe.src = src;
+        }
+      }
+      startTimer();
+    }
   }
 
   function startTimer() {
@@ -354,7 +371,7 @@
     drop.unlocked = true;
     drop.feedback = feedback;
 
-    document.getElementById('blindMask').classList.add('unlocked');
+    document.getElementById('maskOverlay').classList.add('unlocked');
     const badge = document.getElementById('statusBadge');
     badge.innerText = `🎉 Artist Revealed: ${drop.artist_name}!`;
     badge.classList.add('success');
