@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chatsong - Universal Blind Drop & Revealed Chart</title>
+  <title>Chatsong - Universal Blind Drop Chart</title>
   
-  <!-- SoundCloud Widget API -->
-  <script src="https://w.soundcloud.com/player/api.js"></script>
+  <!-- Supabase JS Client & Player APIs -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root {
@@ -25,7 +25,7 @@
     body { background: var(--bg); color: var(--text); padding: 12px; display: flex; justify-content: center; min-height: 100vh; }
     .app { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; margin: auto 0; }
     
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
     .badge { display: inline-block; background: rgba(139, 92, 246, 0.2); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; margin-bottom: 12px; }
     
     h2 { font-size: 1.2rem; margin-bottom: 6px; }
@@ -36,12 +36,9 @@
     input, textarea { width: 100%; padding: 12px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
     input:focus, textarea:focus { outline: none; border-color: var(--accent); }
 
-    .divider { text-align: center; color: var(--muted); font-size: 0.75rem; margin: 10px 0; }
-
     button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
     button:hover { background: var(--accent-hover); }
 
-    /* Container voor speler + gerichte blinde maskers */
     .player-wrapper { 
       position: relative; 
       width: 100%; 
@@ -53,28 +50,31 @@
       border: 1px solid var(--border); 
     }
 
-    /* Masker over de hoes en tekst (laat Play-knop vrij voor officiële streams) */
+    /* Blind covers per platform layout */
     .blind-cover-mask {
       position: absolute;
       top: 0; left: 0;
-      width: 100%; height: 100%;
+      width: calc(100% - 75px);
+      height: 100%;
       background: #18181f;
+      z-index: 10;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      z-index: 10;
-      pointer-events: none; /* Kliks gaan direct naar de Spotify/SoundCloud Play knop */
-      transition: opacity 0.4s ease;
       padding: 12px;
       text-align: center;
+      border-right: 1px solid var(--border);
+      transition: opacity 0.4s ease;
     }
 
-    .blind-cover-mask.unlocked { opacity: 0; display: none; }
+    .blind-cover-mask.spotify-mask { width: calc(100% - 75px); left: 0; }
+    .blind-cover-mask.soundcloud-mask { width: calc(100% - 70px); left: 70px; border-left: 1px solid var(--border); border-right: none; }
+    .blind-cover-mask.youtube-mask { height: 55px; width: 100%; top: 0; border-bottom: 1px solid var(--border); border-right: none; }
+    .blind-cover-mask.unlocked { opacity: 0; pointer-events: none; display: none !important; }
 
     iframe { width: 100%; height: 100%; border: none; display: block; }
 
-    /* Progress & Timer */
     .timer-box { margin: 12px 0; text-align: center; }
     .progress-bar { width: 100%; height: 6px; background: #27272a; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
     .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s linear; }
@@ -90,9 +90,8 @@
     .share-btn { background: var(--accent); }
     .new-drop-btn { background: #3b82f6; margin-top: 8px; }
 
-    /* Revealed Artists List Styles */
     .feed-container { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-    .feed-item { background: #22222b; border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; }
+    .feed-item { background: #22222b; border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
     .feed-item:hover { border-color: var(--accent); }
     .feed-number { font-weight: 800; font-size: 1.1rem; color: var(--accent); min-width: 40px; }
     .feed-info { flex-grow: 1; text-align: left; }
@@ -110,16 +109,16 @@
   <div class="card" id="submitCard">
     <span class="badge">👁️ UNIVERSAL BLIND DROP</span>
     <h2>Submit Track or Short</h2>
-    <p class="sub">Paste Spotify, SoundCloud, YouTube link to count real streams!</p>
+    <p class="sub">Paste Spotify, SoundCloud or YouTube URL (Shorts & mobile links supported!)</p>
 
     <div class="form-group">
-      <label>Track / Video Link</label>
-      <input type="url" id="trackUrl" placeholder="Paste Spotify, SoundCloud, YouTube URL...">
+      <label>Platform Track / Video Link</label>
+      <input type="url" id="trackUrl" placeholder="Paste Spotify, SoundCloud, YouTube / Shorts URL...">
     </div>
 
     <div class="form-group">
-      <label>Artist Name or Handle (Revealed upon unlock)</label>
-      <input type="text" id="artistName" placeholder="e.g. DJ Aquana / Klap Hark">
+      <label>Artist Name or Handle (Hidden until unlocked)</label>
+      <input type="text" id="artistName" placeholder="e.g. DJ Aquana / Artist Handle">
     </div>
 
     <div class="form-group">
@@ -136,25 +135,23 @@
     
     <div class="player-wrapper" id="playerWrapper">
       <div class="blind-cover-mask" id="blindMask">
-        <div style="font-size: 1.5rem; margin-bottom: 2px;">🔒</div>
-        <div style="font-weight: bold; font-size: 1rem;">Hidden Artist & Track</div>
-        <div style="font-size: 0.75rem; color: var(--muted);" id="platformDetect">Detecting platform...</div>
+        <div style="font-size: 1.4rem; margin-bottom: 2px;">🔒</div>
+        <div style="font-weight: bold; font-size: 0.95rem;">Hidden Artist & Track</div>
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 2px;" id="platformDetect">Detecting platform...</div>
       </div>
 
       <div id="mediaContainer" style="width:100%; height:100%;"></div>
     </div>
 
-    <!-- Timer -->
     <div class="timer-box">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="timer-text" id="timerText">Click PLAY on the player above to start listening...</div>
+      <div class="timer-text" id="timerText">Click PLAY inside the player to start listening...</div>
     </div>
 
     <div class="status-badge" id="statusBadge">
-      ▶ Click Play directly inside the player to stream & start 30s unlock timer.
+      ▶ Click Play directly inside the player to hear sound & start 30s unlock timer.
     </div>
 
-    <!-- Feedback -->
     <div id="feedbackForm" style="opacity: 0.4; pointer-events: none; margin-top: 12px;">
       <div class="form-group">
         <label>Honest Feedback (Min. 10 characters)</label>
@@ -163,16 +160,15 @@
       <button onclick="unlockTrack()" id="unlockBtn" disabled>Submit Feedback & Reveal Artist 🔓</button>
     </div>
 
-    <!-- Unlocked Actions -->
     <div class="actions-box" id="unlockedActions">
-      <a href="#" target="_blank" class="action-btn platform-btn" id="originalLinkBtn">⭐ Open & Stream on Official Platform</a>
+      <a href="#" target="_blank" class="action-btn platform-btn" id="originalLinkBtn">⭐ Stream & Save on Official Platform</a>
       <a href="#" target="_blank" class="action-btn chatsong-btn" id="artistProfileBtn" style="display:none;">👤 View Artist Profile & Socials</a>
       <button class="action-btn share-btn" onclick="shareDrop()">📲 Share Blind Drop</button>
       <button class="action-btn new-drop-btn" onclick="resetToSubmit()">➕ Submit Another Track</button>
     </div>
   </div>
 
-  <!-- REVEALED ARTISTS LIST (CHART) -->
+  <!-- REVEALED ARTISTS CHART -->
   <div class="card" id="chartCard" style="display:none;">
     <span class="badge">📊 REVEALED ARTISTS CHART</span>
     <h2>Submitted Tracks & Revealed Artists</h2>
@@ -182,17 +178,70 @@
 </div>
 
 <script>
-  let dropsList = JSON.parse(localStorage.getItem('chatsong_drops')) || [];
+  // SUPABASE CONFIGURATIE
+  const SUPABASE_URL = 'https://dlwzfbpeafrswrwdqxio.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_jsqxORKOYdm-P5chwQRuqA_r2Du4dsA;
+  
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let dropsList = [];
   let currentDropIndex = null;
   let listenedSeconds = 0;
   const requiredSeconds = 30;
   let timerInterval = null;
 
   window.onload = function() {
-    renderChartFeed();
+    fetchDrops();
   };
 
-  function createDrop() {
+  async function fetchDrops() {
+    const { data, error } = await supabaseClient.from('drops').select('*').order('id', { ascending: true });
+    if (error) {
+      console.error("Supabase Fetch Error:", error);
+      return;
+    }
+    dropsList = data || [];
+    renderChartFeed();
+  }
+
+  // GEAVANCEERDE URL PARSER VOOR SHORT LINKS & SHORTS
+  function parseMediaUrl(url) {
+    // 1. Spotify (standaard, intl, en mobile)
+    const spotifyMatch = url.match(/(?:open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:track|episode)\/|spotify:track:)([a-zA-Z0-9]+)/);
+    if (spotifyMatch) {
+      return { 
+        platform: 'Spotify', 
+        maskClass: 'spotify-mask',
+        embedUrl: `https://open.spotify.com/embed/track/${spotifyMatch[1]}?utm_source=generator`,
+        btnText: '💚 Stream & Save on Spotify'
+      };
+    }
+
+    // 2. SoundCloud (inclusief on.soundcloud.com verkorte deellinks)
+    if (url.includes('soundcloud.com')) {
+      return { 
+        platform: 'SoundCloud', 
+        maskClass: 'soundcloud-mask',
+        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`,
+        btnText: '☁️ Stream on SoundCloud'
+      };
+    }
+
+    // 3. YouTube (standaard, youtu.be verkort, én YouTube Shorts)
+    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?.*v=|shorts\/))([\w-]{11})/);
+    if (ytMatch) {
+      return { 
+        platform: 'YouTube', 
+        maskClass: 'youtube-mask',
+        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?enablejsapi=1`,
+        btnText: '🔔 Stream on YouTube'
+      };
+    }
+
+    return { platform: 'Web Audio', maskClass: 'spotify-mask', embedUrl: url, btnText: '🎧 Open Platform Link' };
+  }
+
+  async function createDrop() {
     const urlInput = document.getElementById('trackUrl').value.trim();
     const artistName = document.getElementById('artistName').value.trim() || 'Unknown Artist';
     const profileLink = document.getElementById('artistProfileUrl').value.trim();
@@ -204,23 +253,26 @@
 
     const platformData = parseMediaUrl(urlInput);
 
-    const newDrop = {
-      id: dropsList.length + 1,
-      artistName: artistName,
-      rawLink: urlInput,
-      profileLink: profileLink,
-      platformData: platformData,
+    const { data, error } = await supabaseClient.from('drops').insert([{
+      artist_name: artistName,
+      raw_link: urlInput,
+      profile_link: profileLink,
+      platform: platformData.platform,
+      mask_class: platformData.maskClass,
+      embed_url: platformData.embedUrl,
+      btn_text: platformData.btnText,
       unlocked: false,
       feedback: ''
-    };
+    }]).select();
 
-    dropsList.push(newDrop);
-    localStorage.setItem('chatsong_drops', JSON.stringify(dropsList));
+    if (error) {
+      alert("Error saving track: " + error.message);
+      return;
+    }
 
+    await fetchDrops();
     loadDropIntoPlayer(dropsList.length - 1);
-    renderChartFeed();
 
-    // Reset inputs
     document.getElementById('trackUrl').value = '';
     document.getElementById('artistName').value = '';
     document.getElementById('artistProfileUrl').value = '';
@@ -234,20 +286,19 @@
     timerInterval = null;
 
     const container = document.getElementById('mediaContainer');
-    const platformDetect = document.getElementById('platformDetect');
     const mask = document.getElementById('blindMask');
     container.innerHTML = '';
 
     document.getElementById('activeTrackBadge').innerText = `🔒 MYSTERY DROP #${drop.id}`;
-    platformDetect.innerText = `Platform: ${drop.platformData.platform}`;
+    document.getElementById('platformDetect').innerText = `Platform: ${drop.platform}`;
 
-    container.innerHTML = `<iframe id="mediaIframe" src="${drop.platformData.embedUrl}" allow="autoplay; encrypted-media"></iframe>`;
+    mask.className = `blind-cover-mask ${drop.mask_class || 'spotify-mask'}`;
+    container.innerHTML = `<iframe id="mediaIframe" src="${drop.embed_url}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
 
-    mask.className = 'blind-cover-mask';
     document.getElementById('progressFill').style.width = '0%';
     document.getElementById('timerText').innerText = 'Click PLAY inside the player to start...';
     document.getElementById('statusBadge').className = 'status-badge';
-    document.getElementById('statusBadge').innerText = '▶ Click Play on the speler to stream & start timer.';
+    document.getElementById('statusBadge').innerText = '▶ Click Play on the player to hear sound & start timer.';
     
     document.getElementById('feedbackForm').style.display = 'block';
     document.getElementById('feedbackForm').style.opacity = '0.4';
@@ -257,7 +308,7 @@
 
     if (drop.unlocked) {
       mask.classList.add('unlocked');
-      document.getElementById('statusBadge').innerText = `🎉 Track Unlocked: ${drop.artistName}`;
+      document.getElementById('statusBadge').innerText = `🎉 Track Unlocked: ${drop.artist_name}`;
       document.getElementById('statusBadge').classList.add('success');
       document.getElementById('feedbackForm').style.display = 'none';
       document.getElementById('unlockedActions').style.display = 'flex';
@@ -267,42 +318,13 @@
     document.getElementById('submitCard').style.display = 'none';
     document.getElementById('playerCard').style.display = 'block';
 
-    // Start timer direct bij de eerste klik op de speler
     document.getElementById('playerWrapper').addEventListener('click', () => {
       if (!timerInterval && !dropsList[currentDropIndex].unlocked) startTimer();
     }, { once: true });
   }
 
-  function parseMediaUrl(url) {
-    if (url.includes('soundcloud.com')) {
-      return { 
-        type: 'iframe', platform: 'SoundCloud', 
-        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`,
-        btnText: '☁️ Stream on SoundCloud'
-      };
-    }
-    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?.*v=|shorts\/))([\w-]{11})/);
-    if (ytMatch) {
-      return { 
-        type: 'iframe', platform: 'YouTube', 
-        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?enablejsapi=1`,
-        btnText: '🔔 Stream on YouTube'
-      };
-    }
-    const spotifyMatch = url.match(/(?:open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:track|episode)\/|spotify:track:)([a-zA-Z0-9]+)/);
-    if (spotifyMatch) {
-      return { 
-        type: 'iframe', platform: 'Spotify', 
-        embedUrl: `https://open.spotify.com/embed/track/${spotifyMatch[1]}?utm_source=generator`,
-        btnText: '💚 Stream on Spotify'
-      };
-    }
-    return { type: 'iframe', platform: 'Web Stream', embedUrl: url, btnText: '🎧 Open Stream' };
-  }
-
   function startTimer() {
     document.getElementById('timerText').innerText = "Streaming... 30 seconds remaining";
-    
     timerInterval = setInterval(() => {
       if (listenedSeconds < requiredSeconds) {
         listenedSeconds++;
@@ -318,15 +340,14 @@
 
   function enableUnlock() {
     document.getElementById('timerText').innerText = "✅ Required 30s listening reached!";
-    document.getElementById('statusBadge').innerText = "💬 Leave feedback below to reveal the artist & social links.";
-    
+    document.getElementById('statusBadge').innerText = "💬 Leave honest feedback below to reveal artist profile & links.";
     const form = document.getElementById('feedbackForm');
     form.style.opacity = "1";
     form.style.pointerEvents = "auto";
     document.getElementById('unlockBtn').disabled = false;
   }
 
-  function unlockTrack() {
+  async function unlockTrack() {
     const feedback = document.getElementById('feedbackText').value.trim();
     if (feedback.length < 10) {
       alert("Please leave at least 10 characters of feedback.");
@@ -334,13 +355,23 @@
     }
 
     const drop = dropsList[currentDropIndex];
+
+    const { error } = await supabaseClient
+      .from('drops')
+      .update({ unlocked: true, feedback: feedback })
+      .eq('id', drop.id);
+
+    if (error) {
+      alert("Error updating track: " + error.message);
+      return;
+    }
+
     drop.unlocked = true;
     drop.feedback = feedback;
-    localStorage.setItem('chatsong_drops', JSON.stringify(dropsList));
 
     document.getElementById('blindMask').classList.add('unlocked');
     const badge = document.getElementById('statusBadge');
-    badge.innerText = `🎉 Artist Revealed: ${drop.artistName}!`;
+    badge.innerText = `🎉 Artist Revealed: ${drop.artist_name}!`;
     badge.classList.add('success');
 
     document.getElementById('feedbackForm').style.display = 'none';
@@ -351,16 +382,14 @@
   }
 
   function setupUnlockedButtons(drop) {
-    if (drop.rawLink) {
+    if (drop.raw_link) {
       const origBtn = document.getElementById('originalLinkBtn');
-      origBtn.href = drop.rawLink;
-      if (drop.platformData && drop.platformData.btnText) {
-        origBtn.innerText = drop.platformData.btnText;
-      }
+      origBtn.href = drop.raw_link;
+      origBtn.innerText = drop.btn_text || '⭐ Stream on Platform';
     }
-    if (drop.profileLink) {
+    if (drop.profile_link) {
       const profBtn = document.getElementById('artistProfileBtn');
-      profBtn.href = drop.profileLink;
+      profBtn.href = drop.profile_link;
       profBtn.style.display = 'block';
     }
   }
@@ -391,11 +420,11 @@
       item.innerHTML = `
         <div class="feed-number">#${drop.id}</div>
         <div class="feed-info">
-          <div class="feed-title">${drop.unlocked ? '🔓 ' + drop.artistName : '🔒 Mystery Artist'}</div>
-          <div class="feed-platform">${drop.platformData.platform}</div>
+          <div class="feed-title">${drop.unlocked ? '🔓 ' + drop.artist_name : '🔒 Mystery Artist'}</div>
+          <div class="feed-platform">${drop.platform}</div>
         </div>
         <div class="feed-status ${drop.unlocked ? 'unlocked' : ''}">
-          ${drop.unlocked ? 'Revealed Artist' : 'Listen'}
+          ${drop.unlocked ? 'Revealed' : 'Listen'}
         </div>
       `;
       feed.appendChild(item);
