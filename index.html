@@ -30,46 +30,22 @@
 
     .form-group { margin-bottom: 12px; }
     label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; line-height: 1.3; }
-    input, textarea { width: 100%; padding: 12px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
-    input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    input, select { width: 100%; padding: 12px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
 
     .divider { text-align: center; color: var(--muted); font-size: 0.75rem; margin: 10px 0; }
 
     button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
     button:hover { background: var(--accent-hover); }
 
-    /* Player Container & Blind Masking */
+    /* Player Container */
     .player-wrapper { position: relative; width: 100%; min-height: 152px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
-    
-    .mask-overlay {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: #18181f;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      transition: opacity 0.4s ease;
-      padding: 16px;
-      text-align: center;
-    }
-
-    .mask-overlay.unlocked { opacity: 0; pointer-events: none; }
-
     iframe { width: 100%; height: 152px; border: none; display: block; }
     audio { width: 100%; margin-top: 10px; }
 
-    /* Progress & Timer */
-    .timer-box { margin: 12px 0; text-align: center; }
-    .progress-bar { width: 100%; height: 6px; background: #27272a; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
-    .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s linear; }
-    .timer-text { font-size: 0.8rem; color: var(--muted); }
+    .status-badge { text-align: center; padding: 10px; background: rgba(16, 185, 129, 0.15); color: var(--success); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; border: 1px solid var(--success); }
 
-    .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; border: 1px dashed var(--border); cursor: pointer; }
-    .status-badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success); }
-
-    .actions-box { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
+    .actions-box { display: flex; gap: 8px; margin-top: 12px; flex-direction: column; }
     .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
     .share-btn { background: var(--gold); color: #000; }
     .reset-btn { background: #27272a; border: 1px solid var(--border); }
@@ -79,15 +55,15 @@
 
 <div class="app">
 
-  <!-- STEP 1: SUBMIT & REWARDS INTRO -->
+  <!-- STEP 1: SUBMIT FORM -->
   <div class="card" id="submitCard">
     <span class="badge badge-gold">⭐ CHATSONG BLOG REWARDS (2026)</span>
     <h2>Mystery Hidden Gem Drop</h2>
-    <p class="sub">Submit your track or listen blindly to unlock instant rewards, claim your artist/fan profile, and share the blog!</p>
+    <p class="sub">Instantly reveal and reward any track submitted by fan, label, radio or artist!</p>
 
     <div class="form-group">
-      <label>Platform Link (Spotify, YouTube, SoundCloud, Bandcamp)</label>
-      <input type="url" id="trackUrl" placeholder="Paste music link here...">
+      <label>Music Link (Spotify, SoundCloud, YouTube, Bandcamp)</label>
+      <input type="url" id="trackUrl" placeholder="Paste music track link here...">
     </div>
 
     <div class="divider">— OR UPLOAD MP3 —</div>
@@ -97,53 +73,42 @@
     </div>
 
     <div class="form-group">
-      <label>Your Chatsong Username (Create your username by register or enter your existing profile name)</label>
-      <input type="text" id="memberName" placeholder="Enter your Chatsong profile name...">
+      <label>Who is submitting this track?</label>
+      <select id="submitterRole">
+        <option value="artist">🔥 Artist (Own Track)</option>
+        <option value="label">⭐ Record Label / Scouting</option>
+        <option value="radio">📻 Radio / DJ Promotion</option>
+        <option value="fan">💎 Fan (Hidden Gem Discovery)</option>
+      </select>
     </div>
 
-    <button onclick="createDrop()">Start Mystery Drop 🔥</button>
+    <div class="form-group">
+      <label>Your Chatsong Profile Name</label>
+      <input type="text" id="memberName" placeholder="Enter your username...">
+    </div>
+
+    <button onclick="launchInstantDrop()">🚀 Launch & Reveal Track Instantly!</button>
   </div>
 
-  <!-- STEP 2: BLIND PLAYER VIEW -->
+  <!-- STEP 2: INSTANT REVEAL PLAYER & REWARDS -->
   <div class="card" id="playerCard" style="display:none;">
-    <span class="badge">🔒 MYSTERY DROP PLAYER</span>
-    
-    <div class="player-wrapper" id="playerWrapper">
-      <!-- Dark Mask Overlay -->
-      <div class="mask-overlay" id="maskOverlay">
-        <div style="font-size: 1.8rem; margin-bottom: 4px;">🎁</div>
-        <div style="font-weight: bold; font-size: 1.1rem;">Secret Hidden Gem Loading...</div>
-        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;" id="platformDetect">Preparing player vibe...</div>
-      </div>
+    <span class="badge" id="roleBadge">🎁 MYSTERY DROP REVEALED</span>
+    <h2>Your Track is Live!</h2>
+    <p class="sub">Directly playing the submitted track below. Enjoy the vibe and claim your rewards!</p>
 
-      <!-- Media Container -->
+    <div class="player-wrapper" id="playerWrapper">
       <div id="mediaContainer"></div>
     </div>
 
-    <!-- Timer -->
-    <div class="timer-box">
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="timer-text" id="timerText">Click Play on the player above to start timer!</div>
+    <div class="status-badge" id="statusBadge">
+      🎉 Success! Track successfully displayed & reward points added to your profile.
     </div>
 
-    <div class="status-badge" id="statusBadge" onclick="forceStartTimer()">
-      ⚡ [ Click here if timer doesn't start automatically after playing ]
-    </div>
-
-    <!-- Feedback / Reward Form -->
-    <div id="feedbackForm" style="opacity: 0.4; pointer-events: none; margin-top: 12px;">
-      <div class="form-group">
-        <label>Quick Vibe Check / Feedback (Min. 10 chars)</label>
-        <textarea id="feedbackText" rows="2" placeholder="What's your verdict on this track?"></textarea>
-      </div>
-      <button onclick="unlockTrack()" id="unlockBtn" disabled>Claim Reward & Reveal Track 🔓</button>
-    </div>
-
-    <!-- Unlocked State & Share / Infinite Submit Actions -->
+    <!-- Actions & Blog Sharing -->
     <div class="actions-box" id="unlockedActions">
-      <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Original Track</a>
-      <button class="action-btn share-btn" onclick="shareBlog()">📲 Share Chatsong Blog (Earn Extra Points) 🚀</button>
-      <button class="action-btn reset-btn" onclick="resetToSubmit()">🔄 Submit Another Track / New Drop</button>
+      <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Track on Original Platform</a>
+      <button class="action-btn share-btn" onclick="shareBlog()">📲 Share Chatsong Blog & Earn Bonus Points 🚀</button>
+      <button class="action-btn reset-btn" onclick="resetToSubmit()">🔄 Drop Another Track</button>
     </div>
   </div>
 
@@ -151,187 +116,102 @@
 
 <script>
   const blogUrl = "https://chatsong.nl/blog/1642-mysterieus-hidden-gem-drop";
-
   let rawLink = '';
-  let listenedSeconds = 0;
-  const requiredSeconds = 15; // Ingetrokken naar 15 seconden voor de snelle jeugd-ervaring!
-  let timerInterval = null;
-  let timerRunning = false;
 
-  function createDrop() {
+  function launchInstantDrop() {
     const urlInput = document.getElementById('trackUrl').value.trim();
     const fileInput = document.getElementById('fileInput');
     const memberName = document.getElementById('memberName').value.trim();
+    const role = document.getElementById('submitterRole').value;
     const container = document.getElementById('mediaContainer');
-    const platformDetect = document.getElementById('platformDetect');
 
     if (!urlInput && fileInput.files.length === 0) {
       alert("Please enter a music link or select an MP3 file.");
       return;
     }
-
     if (!memberName) {
-      alert("Please enter or create your Chatsong username/profile name first!");
+      alert("Please enter your Chatsong profile name.");
       return;
     }
 
-    container.innerHTML = '';
     rawLink = urlInput;
+    container.innerHTML = '';
 
+    // Stel dynamische badge in op basis van wie het indient (Fan, Label, Radio, Artist)
+    const roleTitles = {
+      artist: "🔥 ARTIST DROP REVEALED",
+      label: "⭐ LABEL TRACK REVEALED",
+      radio: "📻 RADIO PREMIERE REVEALED",
+      fan: "💎 FAN HIDDEN GEM REVEALED"
+    };
+    document.getElementById('roleBadge').innerText = roleTitles[role] || "🎁 DROP REVEALED";
+
+    // Toon direct de speler
     if (fileInput.files.length > 0) {
-      platformDetect.innerText = "Source: Uploaded File";
       const audioUrl = URL.createObjectURL(fileInput.files[0]);
-      container.innerHTML = `<audio id="blindAudio" controls src="${audioUrl}"></audio>`;
-      setupAudioListener(document.getElementById('blindAudio'));
+      container.innerHTML = `<audio controls autoplay src="${audioUrl}"></audio>`;
     } else {
       const parsed = parseMediaUrl(urlInput);
-      platformDetect.innerText = `Platform: ${parsed.platform}`;
-      
       if (parsed.type === 'iframe') {
         container.innerHTML = `<iframe src="${parsed.embedUrl}" allow="encrypted-media; autoplay; clipboard-write; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
-        startTimer(); // Start automatisch voor maximale snelheid
       } else {
-        container.innerHTML = `<audio id="blindAudio" controls src="${urlInput}"></audio>`;
-        setupAudioListener(document.getElementById('blindAudio'));
+        container.innerHTML = `<audio controls autoplay src="${urlInput}"></audio>`;
       }
     }
 
+    // Wissel schermen direct uit zonder wachttijd
     document.getElementById('submitCard').style.display = 'none';
     document.getElementById('playerCard').style.display = 'block';
-  }
 
-  function parseMediaUrl(url) {
-    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
-    if (ytMatch) {
-      return { 
-        type: 'iframe', 
-        platform: 'YouTube / Shorts', 
-        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1` 
-      };
-    }
-
-    const spotifyMatch = url.match(/open\.spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/);
-    if (spotifyMatch) {
-      return { 
-        type: 'iframe', 
-        platform: 'Spotify', 
-        embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator&theme=0` 
-      };
-    }
-
-    if (url.includes('soundcloud.com')) {
-      return { 
-        type: 'iframe', 
-        platform: 'SoundCloud', 
-        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=true` 
-      };
-    }
-
-    if (url.includes('bandcamp.com')) {
-      return {
-        type: 'iframe',
-        platform: 'Bandcamp',
-        embedUrl: `https://bandcamp.com/EmbeddedPlayer/v=2/track=${encodeURIComponent(url)}/size=small/bgcol=18181f/linkcol=8b5cf6/transparent=true/`
-      };
-    }
-
-    return { type: 'audio', platform: 'Direct Audio Stream', embedUrl: url };
-  }
-
-  function setupAudioListener(audioEl) {
-    audioEl.addEventListener('play', () => startTimer());
-    audioEl.addEventListener('pause', () => clearInterval(timerInterval));
-  }
-
-  function startTimer() {
-    if (timerRunning) return;
-    timerRunning = true;
-    
-    if (timerInterval) clearInterval(timerInterval);
-    
-    timerInterval = setInterval(() => {
-      if (listenedSeconds < requiredSeconds) {
-        listenedSeconds++;
-        const percent = (listenedSeconds / requiredSeconds) * 100;
-        document.getElementById('progressFill').style.width = percent + '%';
-        
-        const remaining = requiredSeconds - listenedSeconds;
-        document.getElementById('timerText').innerText = `🔥 Only ${remaining}s left to unlock instant reward!`;
-      } else {
-        clearInterval(timerInterval);
-        enableUnlock();
-      }
-    }, 1000);
-  }
-
-  function forceStartTimer() {
-    startTimer();
-    document.getElementById('timerText').innerText = "⚡ Timer manually activated! Keep playing...";
-  }
-
-  function enableUnlock() {
-    document.getElementById('timerText').innerText = "✅ Vibe check unlocked!";
-    document.getElementById('statusBadge').innerText = "🎉 Drop feedback below to reveal track & claim points!";
-    
-    const form = document.getElementById('feedbackForm');
-    form.style.opacity = "1";
-    form.style.pointerEvents = "auto";
-    document.getElementById('unlockBtn').disabled = false;
-  }
-
-  function unlockTrack() {
-    const feedback = document.getElementById('feedbackText').value.trim();
-    if (feedback.length < 10) {
-      alert("Please write at least 10 characters of feedback.");
-      return;
-    }
-
-    document.getElementById('maskOverlay').classList.add('unlocked');
-
-    const badge = document.getElementById('statusBadge');
-    badge.innerText = "🏆 Reward Claimed! Profile Points Added!";
-    badge.classList.add('success');
-
-    document.getElementById('unlockedActions').style.display = 'flex';
     if (rawLink) {
       document.getElementById('originalLinkBtn').href = rawLink;
     }
+  }
 
-    document.getElementById('unlockBtn').style.display = 'none';
+  function parseMediaUrl(url) {
+    // YouTube
+    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
+    if (ytMatch) {
+      return { type: 'iframe', embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1` };
+    }
+
+    // Spotify
+    const spotifyMatch = url.match(/open\.spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/);
+    if (spotifyMatch) {
+      return { type: 'iframe', embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator&theme=0` };
+    }
+
+    // SoundCloud
+    if (url.includes('soundcloud.com')) {
+      return { type: 'iframe', embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=true` };
+    }
+
+    // Bandcamp
+    if (url.includes('bandcamp.com')) {
+      return { type: 'iframe', embedUrl: `https://bandcamp.com/EmbeddedPlayer/v=2/track=${encodeURIComponent(url)}/size=small/bgcol=18181f/linkcol=8b5cf6/transparent=true/` };
+    }
+
+    return { type: 'audio', embedUrl: url };
   }
 
   function shareBlog() {
     if (navigator.share) {
       navigator.share({
         title: 'Mystery Hidden Gem Drop - Chatsong',
-        text: 'Drop your music, listen blindly, and earn rewards on Chatsong!',
+        text: 'Check out this music drop and earn rewards on Chatsong!',
         url: blogUrl
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(blogUrl);
-      alert("Official Blog link copied: " + blogUrl + "\nShare it to recruit new members and get bonus points!");
+      alert("Blog link copied: " + blogUrl + "\nShare it with friends to recruit new members!");
     }
   }
 
   function resetToSubmit() {
-    if (timerInterval) clearInterval(timerInterval);
-    listenedSeconds = 0;
-    timerRunning = false;
-    
     document.getElementById('trackUrl').value = '';
     document.getElementById('fileInput').value = '';
-    document.getElementById('feedbackText').value = '';
-    document.getElementById('progressFill').style.width = '0%';
-    document.getElementById('timerText').innerText = "Click Play on the player above to start timer!";
-    document.getElementById('statusBadge').innerText = "⚡ [ Click here if timer doesn't start automatically after playing ]";
-    document.getElementById('statusBadge').classList.remove('success');
-    
-    document.getElementById('maskOverlay').classList.remove('unlocked');
-    document.getElementById('feedbackForm').style.opacity = "0.4";
-    document.getElementById('feedbackForm').style.pointerEvents = "none";
-    document.getElementById('unlockBtn').disabled = true;
-    document.getElementById('unlockBtn').style.display = 'block';
-    document.getElementById('unlockedActions').style.display = 'none';
+    document.getElementById('memberName').value = '';
+    document.getElementById('mediaContainer').innerHTML = '';
 
     document.getElementById('playerCard').style.display = 'none';
     document.getElementById('submitCard').style.display = 'block';
