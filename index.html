@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,7 +39,7 @@
     button:hover { background: var(--accent-hover); }
 
     /* Player Container & Blind Masking */
-    .player-wrapper { position: relative; width: 100%; min-height: 166px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
+    .player-wrapper { position: relative; width: 100%; min-height: 152px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
     
     .mask-overlay {
       position: absolute;
@@ -58,7 +57,7 @@
 
     .mask-overlay.unlocked { opacity: 0; pointer-events: none; }
 
-    iframe { width: 100%; height: 166px; border: none; display: block; }
+    iframe { width: 100%; height: 152px; border: none; display: block; }
     audio { width: 100%; margin-top: 10px; }
 
     /* Progress & Timer */
@@ -67,7 +66,7 @@
     .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s linear; }
     .timer-text { font-size: 0.8rem; color: var(--muted); }
 
-    .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; border: 1px dashed var(--border); }
+    .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; border: 1px dashed var(--border); cursor: pointer; }
     .status-badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success); }
 
     .actions-box { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
@@ -84,11 +83,11 @@
   <div class="card" id="submitCard">
     <span class="badge badge-gold">⭐ CHATSONG BLOG REWARDS (2026)</span>
     <h2>Mystery Hidden Gem Drop</h2>
-    <p class="sub">Submit your track or listen blindly to earn rewards, grow your profile, and recruit new members via our blog!</p>
+    <p class="sub">Submit your track or listen blindly to unlock instant rewards, claim your artist/fan profile, and share the blog!</p>
 
     <div class="form-group">
-      <label>Platform Link / Mobile Share Link (Spotify, YouTube, SoundCloud, Bandcamp)</label>
-      <input type="url" id="trackUrl" placeholder="Paste link (SoundCloud, Spotify, YouTube, Bandcamp)...">
+      <label>Platform Link (Spotify, YouTube, SoundCloud, Bandcamp)</label>
+      <input type="url" id="trackUrl" placeholder="Paste music link here...">
     </div>
 
     <div class="divider">— OR UPLOAD MP3 —</div>
@@ -98,11 +97,11 @@
     </div>
 
     <div class="form-group">
-      <label>Your Chatsong Username (Create your chatsong username by register and if you already a chatsong user write your profile name)</label>
+      <label>Your Chatsong Username (Create your username by register or enter your existing profile name)</label>
       <input type="text" id="memberName" placeholder="Enter your Chatsong profile name...">
     </div>
 
-    <button onclick="createDrop()">Start Hidden Gem Drop 🚀</button>
+    <button onclick="createDrop()">Start Mystery Drop 🔥</button>
   </div>
 
   <!-- STEP 2: BLIND PLAYER VIEW -->
@@ -113,8 +112,8 @@
       <!-- Dark Mask Overlay -->
       <div class="mask-overlay" id="maskOverlay">
         <div style="font-size: 1.8rem; margin-bottom: 4px;">🎁</div>
-        <div style="font-weight: bold; font-size: 1.1rem;">Secret Hidden Gem</div>
-        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;" id="platformDetect">Detecting platform...</div>
+        <div style="font-weight: bold; font-size: 1.1rem;">Secret Hidden Gem Loading...</div>
+        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;" id="platformDetect">Preparing player vibe...</div>
       </div>
 
       <!-- Media Container -->
@@ -124,26 +123,26 @@
     <!-- Timer -->
     <div class="timer-box">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="timer-text" id="timerText">Listening timer active...</div>
+      <div class="timer-text" id="timerText">Click Play on the player above to start timer!</div>
     </div>
 
-    <div class="status-badge" id="statusBadge">
-      ▶ Interact with the player above to unlock rewards.
+    <div class="status-badge" id="statusBadge" onclick="forceStartTimer()">
+      ⚡ [ Click here if timer doesn't start automatically after playing ]
     </div>
 
     <!-- Feedback / Reward Form -->
     <div id="feedbackForm" style="opacity: 0.4; pointer-events: none; margin-top: 12px;">
       <div class="form-group">
-        <label>Honest Feedback (Min. 10 characters)</label>
-        <textarea id="feedbackText" rows="3" placeholder="What do you think of the production or vibe?"></textarea>
+        <label>Quick Vibe Check / Feedback (Min. 10 chars)</label>
+        <textarea id="feedbackText" rows="2" placeholder="What's your verdict on this track?"></textarea>
       </div>
-      <button onclick="unlockTrack()" id="unlockBtn" disabled>Claim Reward & Unlock Artist 🔓</button>
+      <button onclick="unlockTrack()" id="unlockBtn" disabled>Claim Reward & Reveal Track 🔓</button>
     </div>
 
     <!-- Unlocked State & Share / Infinite Submit Actions -->
     <div class="actions-box" id="unlockedActions">
       <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Original Track</a>
-      <button class="action-btn share-btn" onclick="shareBlog()">📲 Share Blog & Get Extra Points 🚀</button>
+      <button class="action-btn share-btn" onclick="shareBlog()">📲 Share Chatsong Blog (Earn Extra Points) 🚀</button>
       <button class="action-btn reset-btn" onclick="resetToSubmit()">🔄 Submit Another Track / New Drop</button>
     </div>
   </div>
@@ -155,17 +154,24 @@
 
   let rawLink = '';
   let listenedSeconds = 0;
-  const requiredSeconds = 30;
+  const requiredSeconds = 15; // Ingetrokken naar 15 seconden voor de snelle jeugd-ervaring!
   let timerInterval = null;
+  let timerRunning = false;
 
   function createDrop() {
     const urlInput = document.getElementById('trackUrl').value.trim();
     const fileInput = document.getElementById('fileInput');
+    const memberName = document.getElementById('memberName').value.trim();
     const container = document.getElementById('mediaContainer');
     const platformDetect = document.getElementById('platformDetect');
 
     if (!urlInput && fileInput.files.length === 0) {
       alert("Please enter a music link or select an MP3 file.");
+      return;
+    }
+
+    if (!memberName) {
+      alert("Please enter or create your Chatsong username/profile name first!");
       return;
     }
 
@@ -183,7 +189,7 @@
       
       if (parsed.type === 'iframe') {
         container.innerHTML = `<iframe src="${parsed.embedUrl}" allow="encrypted-media; autoplay; clipboard-write; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
-        startTimer(); // Start de timer automatisch voor alle streams
+        startTimer(); // Start automatisch voor maximale snelheid
       } else {
         container.innerHTML = `<audio id="blindAudio" controls src="${urlInput}"></audio>`;
         setupAudioListener(document.getElementById('blindAudio'));
@@ -194,9 +200,7 @@
     document.getElementById('playerCard').style.display = 'block';
   }
 
-  // Verbeterde Parser inclusief correcte SoundCloud Widget URL omzetting
   function parseMediaUrl(url) {
-    // YouTube & Shorts
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
       return { 
@@ -206,7 +210,6 @@
       };
     }
 
-    // Spotify
     const spotifyMatch = url.match(/open\.spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/);
     if (spotifyMatch) {
       return { 
@@ -216,17 +219,14 @@
       };
     }
 
-    // SoundCloud (Fix: omzetten naar officiële w.soundcloud.com/player endpoint met encodeURIComponent)
     if (url.includes('soundcloud.com')) {
-      const encodedUrl = encodeURIComponent(url);
       return { 
         type: 'iframe', 
         platform: 'SoundCloud', 
-        embedUrl: `https://w.soundcloud.com/player/?url=${encodedUrl}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false` 
+        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=true` 
       };
     }
 
-    // Bandcamp
     if (url.includes('bandcamp.com')) {
       return {
         type: 'iframe',
@@ -244,6 +244,9 @@
   }
 
   function startTimer() {
+    if (timerRunning) return;
+    timerRunning = true;
+    
     if (timerInterval) clearInterval(timerInterval);
     
     timerInterval = setInterval(() => {
@@ -253,7 +256,7 @@
         document.getElementById('progressFill').style.width = percent + '%';
         
         const remaining = requiredSeconds - listenedSeconds;
-        document.getElementById('timerText').innerText = `${remaining} seconds left to unlock rewards...`;
+        document.getElementById('timerText').innerText = `🔥 Only ${remaining}s left to unlock instant reward!`;
       } else {
         clearInterval(timerInterval);
         enableUnlock();
@@ -261,9 +264,14 @@
     }, 1000);
   }
 
+  function forceStartTimer() {
+    startTimer();
+    document.getElementById('timerText').innerText = "⚡ Timer manually activated! Keep playing...";
+  }
+
   function enableUnlock() {
-    document.getElementById('timerText').innerText = "✅ 30 seconds listening completed!";
-    document.getElementById('statusBadge').innerText = "💬 Submit feedback to claim your reward and reveal the track.";
+    document.getElementById('timerText').innerText = "✅ Vibe check unlocked!";
+    document.getElementById('statusBadge').innerText = "🎉 Drop feedback below to reveal track & claim points!";
     
     const form = document.getElementById('feedbackForm');
     form.style.opacity = "1";
@@ -274,14 +282,14 @@
   function unlockTrack() {
     const feedback = document.getElementById('feedbackText').value.trim();
     if (feedback.length < 10) {
-      alert("Please provide at least 10 characters of feedback.");
+      alert("Please write at least 10 characters of feedback.");
       return;
     }
 
     document.getElementById('maskOverlay').classList.add('unlocked');
 
     const badge = document.getElementById('statusBadge');
-    badge.innerText = "🎉 Reward Granted & Track Unlocked!";
+    badge.innerText = "🏆 Reward Claimed! Profile Points Added!";
     badge.classList.add('success');
 
     document.getElementById('unlockedActions').style.display = 'flex';
@@ -296,26 +304,26 @@
     if (navigator.share) {
       navigator.share({
         title: 'Mystery Hidden Gem Drop - Chatsong',
-        text: 'Listen on the Chatsong blog, drop your feedback, and earn rewards!',
+        text: 'Drop your music, listen blindly, and earn rewards on Chatsong!',
         url: blogUrl
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(blogUrl);
-      alert("Official blog link copied: " + blogUrl + "\nShare it with friends to earn extra points!");
+      alert("Official Blog link copied: " + blogUrl + "\nShare it to recruit new members and get bonus points!");
     }
   }
 
   function resetToSubmit() {
     if (timerInterval) clearInterval(timerInterval);
     listenedSeconds = 0;
+    timerRunning = false;
     
     document.getElementById('trackUrl').value = '';
     document.getElementById('fileInput').value = '';
-    document.getElementById('memberName').value = '';
     document.getElementById('feedbackText').value = '';
     document.getElementById('progressFill').style.width = '0%';
-    document.getElementById('timerText').innerText = "Listening timer active...";
-    document.getElementById('statusBadge').innerText = "▶ Interact with the player above to unlock rewards.";
+    document.getElementById('timerText').innerText = "Click Play on the player above to start timer!";
+    document.getElementById('statusBadge').innerText = "⚡ [ Click here if timer doesn't start automatically after playing ]";
     document.getElementById('statusBadge').classList.remove('success');
     
     document.getElementById('maskOverlay').classList.remove('unlocked');
