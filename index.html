@@ -29,7 +29,7 @@
     p.sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; line-height: 1.4; }
 
     .form-group { margin-bottom: 12px; }
-    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; line-height: 1.3; }
     input, textarea { width: 100%; padding: 12px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
     input:focus, textarea:focus { outline: none; border-color: var(--accent); }
 
@@ -39,7 +39,7 @@
     button:hover { background: var(--accent-hover); }
 
     /* Player Container & Blind Masking */
-    .player-wrapper { position: relative; width: 100%; min-height: 180px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
+    .player-wrapper { position: relative; width: 100%; min-height: 120px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
     
     .mask-overlay {
       position: absolute;
@@ -57,7 +57,7 @@
 
     .mask-overlay.unlocked { opacity: 0; pointer-events: none; }
 
-    iframe { width: 100%; height: 180px; border: none; display: block; }
+    iframe { width: 100%; height: 120px; border: none; display: block; }
     audio { width: 100%; margin-top: 10px; }
 
     /* Progress & Timer */
@@ -81,13 +81,13 @@
 
   <!-- STEP 1: SUBMIT & REWARDS INTRO -->
   <div class="card" id="submitCard">
-    <span class="badge badge-gold">⭐ CHATSONG BLOG REWARDS</span>
+    <span class="badge badge-gold">⭐ CHATSONG BLOG REWARDS (2026)</span>
     <h2>Mystery Hidden Gem Drop</h2>
     <p class="sub">Submit your track or listen blindly to earn rewards, grow your profile, and recruit new members via our blog!</p>
 
     <div class="form-group">
-      <label>Platform Link / Mobile Share Link (YouTube Shorts, Spotify, SoundCloud)</label>
-      <input type="url" id="trackUrl" placeholder="Paste your link here...">
+      <label>Platform Link / Mobile Share Link (Spotify, YouTube, SoundCloud, Bandcamp)</label>
+      <input type="url" id="trackUrl" placeholder="Paste your Spotify, YouTube, SoundCloud or Bandcamp link...">
     </div>
 
     <div class="divider">— OR UPLOAD MP3 —</div>
@@ -97,8 +97,8 @@
     </div>
 
     <div class="form-group">
-      <label>Your Chatsong Username (For rewards & points)</label>
-      <input type="text" id="memberName" placeholder="Your username...">
+      <label>Your Chatsong Username (Create your chatsong username by register and if you already a chatsong user write your profile name)</label>
+      <input type="text" id="memberName" placeholder="Enter your Chatsong profile name...">
     </div>
 
     <button onclick="createDrop()">Start Hidden Gem Drop 🚀</button>
@@ -123,11 +123,11 @@
     <!-- Timer -->
     <div class="timer-box">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="timer-text" id="timerText">Listen for 30 seconds to unlock rewards...</div>
+      <div class="timer-text" id="timerText">Listening timer active...</div>
     </div>
 
     <div class="status-badge" id="statusBadge">
-      ▶ Play the track above to start the reward timer.
+      ▶ Interact with the player above to unlock rewards.
     </div>
 
     <!-- Feedback / Reward Form -->
@@ -150,7 +150,6 @@
 </div>
 
 <script>
-  // Permanent Blog URL for member growth and sharing
   const blogUrl = "https://chatsong.nl/blog/1642-mysterieus-hidden-gem-drop";
 
   let rawLink = '';
@@ -182,8 +181,8 @@
       platformDetect.innerText = `Platform: ${parsed.platform}`;
       
       if (parsed.type === 'iframe') {
-        container.innerHTML = `<iframe src="${parsed.embedUrl}" allow="autoplay; encrypted-media"></iframe>`;
-        startTimer(); // Start timer directly for iframes
+        container.innerHTML = `<iframe src="${parsed.embedUrl}" allow="encrypted-media; autoplay; clipboard-write; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+        startTimer(); // Start timer automatically for streaming embeds
       } else {
         container.innerHTML = `<audio id="blindAudio" controls src="${urlInput}"></audio>`;
         setupAudioListener(document.getElementById('blindAudio'));
@@ -194,8 +193,9 @@
     document.getElementById('playerCard').style.display = 'block';
   }
 
-  // Universal URL Parser (Shorts, Spotify, YouTube, SoundCloud)
+  // Universal URL Parser including Bandcamp, Spotify, YouTube & SoundCloud
   function parseMediaUrl(url) {
+    // YouTube & Shorts
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
       return { 
@@ -205,15 +205,17 @@
       };
     }
 
-    const spotifyMatch = url.match(/open\.spotify\.com\/(track|episode)\/([a-zA-Z0-9]+)/);
+    // Spotify
+    const spotifyMatch = url.match(/open\.spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/);
     if (spotifyMatch) {
       return { 
         type: 'iframe', 
         platform: 'Spotify', 
-        embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator` 
+        embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator&theme=0` 
       };
     }
 
+    // SoundCloud
     if (url.includes('soundcloud.com')) {
       return { 
         type: 'iframe', 
@@ -222,7 +224,22 @@
       };
     }
 
+    // Bandcamp (supports standard track/album share links)
+    if (url.includes('bandcamp.com')) {
+      return {
+        type: 'iframe',
+        platform: 'Bandcamp',
+        embedUrl: `https://bandcamp.com/EmbeddedPlayer/v=2/track=${extractBandcampId(url)}/size=small/bgcol=18181f/linkcol=8b5cf6/transparent=true/`
+      };
+    }
+
     return { type: 'audio', platform: 'Direct Audio Stream', embedUrl: url };
+  }
+
+  // Helper to extract or fallback for Bandcamp embedded links if direct URL is used
+  function extractBandcampId(url) {
+    // Bandcamp embeds usually work nicely if wrapped or parsed, fallback to generic parsing or parameter wrapper
+    return encodeURIComponent(url);
   }
 
   function setupAudioListener(audioEl) {
@@ -240,7 +257,7 @@
         document.getElementById('progressFill').style.width = percent + '%';
         
         const remaining = requiredSeconds - listenedSeconds;
-        document.getElementById('timerText').innerText = `${remaining} seconds left to unlock...`;
+        document.getElementById('timerText').innerText = `${remaining} seconds left to unlock rewards...`;
       } else {
         clearInterval(timerInterval);
         enableUnlock();
@@ -250,7 +267,7 @@
 
   function enableUnlock() {
     document.getElementById('timerText').innerText = "✅ 30 seconds listening completed!";
-    document.getElementById('statusBadge').innerText = "💬 Submit feedback to claim your reward and reveal the artist.";
+    document.getElementById('statusBadge').innerText = "💬 Submit feedback to claim your reward and reveal the track.";
     
     const form = document.getElementById('feedbackForm');
     form.style.opacity = "1";
@@ -265,15 +282,12 @@
       return;
     }
 
-    // Remove mask to reveal content
     document.getElementById('maskOverlay').classList.add('unlocked');
 
-    // Status update
     const badge = document.getElementById('statusBadge');
-    badge.innerText = "🎉 Reward Granted & Artist Unlocked!";
+    badge.innerText = "🎉 Reward Granted & Track Unlocked!";
     badge.classList.add('success');
 
-    // Show actions (original link, share, and reset for infinite looping)
     document.getElementById('unlockedActions').style.display = 'flex';
     if (rawLink) {
       document.getElementById('originalLinkBtn').href = rawLink;
@@ -282,7 +296,6 @@
     document.getElementById('unlockBtn').style.display = 'none';
   }
 
-  // Share blog URL for viral recruitment
   function shareBlog() {
     if (navigator.share) {
       navigator.share({
@@ -296,18 +309,17 @@
     }
   }
 
-  // Reset function for infinite track drops / submissions
   function resetToSubmit() {
     if (timerInterval) clearInterval(timerInterval);
     listenedSeconds = 0;
     
-    // Reset inputs and UI states
     document.getElementById('trackUrl').value = '';
     document.getElementById('fileInput').value = '';
+    document.getElementById('memberName').value = '';
     document.getElementById('feedbackText').value = '';
     document.getElementById('progressFill').style.width = '0%';
-    document.getElementById('timerText').innerText = "Listen for 30 seconds to unlock rewards...";
-    document.getElementById('statusBadge').innerText = "▶ Play the track above to start the reward timer.";
+    document.getElementById('timerText').innerText = "Listening timer active...";
+    document.getElementById('statusBadge').innerText = "▶ Interact with the player above to unlock rewards.";
     document.getElementById('statusBadge').classList.remove('success');
     
     document.getElementById('maskOverlay').classList.remove('unlocked');
@@ -317,7 +329,6 @@
     document.getElementById('unlockBtn').style.display = 'block';
     document.getElementById('unlockedActions').style.display = 'none';
 
-    // Switch back to submit view
     document.getElementById('playerCard').style.display = 'none';
     document.getElementById('submitCard').style.display = 'block';
   }
