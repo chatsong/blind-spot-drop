@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chatsong - Universal Blind Drop Chart</title>
-  
-  <!-- Supabase JS Client & Player APIs -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root {
@@ -50,7 +47,6 @@
       border: 1px solid var(--border); 
     }
 
-    /* Blind covers per platform layout */
     .blind-cover-mask {
       position: absolute;
       top: 0; left: 0;
@@ -105,7 +101,7 @@
 
 <div class="app">
 
-  <!-- INSCHRIJFFORMULIER -->
+  <!-- FORMULIER -->
   <div class="card" id="submitCard">
     <span class="badge">👁️ UNIVERSAL BLIND DROP</span>
     <h2>Submit Track or Short</h2>
@@ -129,7 +125,7 @@
     <button onclick="createDrop()">Add Track & Launch Stream Player 🚀</button>
   </div>
 
-  <!-- ACTIEVE BLIND SPELER -->
+  <!-- SPELER -->
   <div class="card" id="playerCard" style="display:none;">
     <span class="badge" id="activeTrackBadge">🔒 MYSTERY DROP #1</span>
     
@@ -168,7 +164,7 @@
     </div>
   </div>
 
-  <!-- REVEALED ARTISTS CHART -->
+  <!-- CHART FEED -->
   <div class="card" id="chartCard" style="display:none;">
     <span class="badge">📊 REVEALED ARTISTS CHART</span>
     <h2>Submitted Tracks & Revealed Artists</h2>
@@ -178,11 +174,8 @@
 </div>
 
 <script>
-  // SUPABASE CONFIGURATIE
- const SUPABASE_URL = 'https://dlwzfbpeafrswrdqxio.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_jsqxORKOYdm-P5chwQRuqA_r2Du4dsA';
-  
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // PLAK HIERONDER JOUW GOOGLE APPS SCRIPT WEB-APP URL
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbypLzox45epM9g2YdhLShZZCOZYWDbuIOBVskB-mGTlvzSpRpk0m3xnpBC9zMjGW3x9/exec';
 
   let dropsList = [];
   let currentDropIndex = null;
@@ -195,18 +188,16 @@ const SUPABASE_KEY = 'sb_publishable_jsqxORKOYdm-P5chwQRuqA_r2Du4dsA';
   };
 
   async function fetchDrops() {
-    const { data, error } = await supabaseClient.from('drops').select('*').order('id', { ascending: true });
-    if (error) {
-      console.error("Supabase Fetch Error:", error);
-      return;
+    try {
+      const res = await fetch(GOOGLE_SCRIPT_URL);
+      dropsList = await res.json();
+      renderChartFeed();
+    } catch (err) {
+      console.error("Error fetching drops:", err);
     }
-    dropsList = data || [];
-    renderChartFeed();
   }
 
-  // GEAVANCEERDE URL PARSER VOOR SHORT LINKS & SHORTS
   function parseMediaUrl(url) {
-    // 1. Spotify (standaard, intl, en mobile)
     const spotifyMatch = url.match(/(?:open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:track|episode)\/|spotify:track:)([a-zA-Z0-9]+)/);
     if (spotifyMatch) {
       return { 
@@ -217,7 +208,6 @@ const SUPABASE_KEY = 'sb_publishable_jsqxORKOYdm-P5chwQRuqA_r2Du4dsA';
       };
     }
 
-    // 2. SoundCloud (inclusief on.soundcloud.com verkorte deellinks)
     if (url.includes('soundcloud.com')) {
       return { 
         platform: 'SoundCloud', 
@@ -227,7 +217,6 @@ const SUPABASE_KEY = 'sb_publishable_jsqxORKOYdm-P5chwQRuqA_r2Du4dsA';
       };
     }
 
-    // 3. YouTube (standaard, youtu.be verkort, én YouTube Shorts)
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?.*v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
       return { 
@@ -253,22 +242,22 @@ const SUPABASE_KEY = 'sb_publishable_jsqxORKOYdm-P5chwQRuqA_r2Du4dsA';
 
     const platformData = parseMediaUrl(urlInput);
 
-    const { data, error } = await supabaseClient.from('drops').insert([{
+    const payload = {
+      action: 'add',
       artist_name: artistName,
       raw_link: urlInput,
       profile_link: profileLink,
       platform: platformData.platform,
       mask_class: platformData.maskClass,
       embed_url: platformData.embedUrl,
-      btn_text: platformData.btnText,
-      unlocked: false,
-      feedback: ''
-    }]).select();
+      btn_text: platformData.btnText
+    };
 
-    if (error) {
-      alert("Error saving track: " + error.message);
-      return;
-    }
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
 
     await fetchDrops();
     loadDropIntoPlayer(dropsList.length - 1);
@@ -356,15 +345,11 @@ const SUPABASE_KEY = 'sb_publishable_jsqxORKOYdm-P5chwQRuqA_r2Du4dsA';
 
     const drop = dropsList[currentDropIndex];
 
-    const { error } = await supabaseClient
-      .from('drops')
-      .update({ unlocked: true, feedback: feedback })
-      .eq('id', drop.id);
-
-    if (error) {
-      alert("Error updating track: " + error.message);
-      return;
-    }
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'unlock', id: drop.id, feedback: feedback })
+    });
 
     drop.unlocked = true;
     drop.feedback = feedback;
