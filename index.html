@@ -85,7 +85,7 @@
     .track-reason { font-size: 0.85rem; color: var(--muted); font-style: italic; background: #22222b; padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--gold); }
     .track-number-badge { background: var(--gold); color: #000; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 0.75rem; }
 
-    /* 🚀 STRAKKE LAAD ANIMATIE VOOR DE 5 SECONDEN GOOGLE WACHTTIJD */
+    /* 🚀 STRAKKE LAAD ANIMATIE */
     .loader {
       border: 3px solid rgba(139, 92, 246, 0.2);
       border-top: 3px solid var(--accent);
@@ -194,7 +194,6 @@
   let countdownTimer = null;
   const totalWaitSeconds = 3;
 
-  // JOUW GOOGLE SCRIPT URL
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyfn_WfP1lMPkwhlvvmD_xSeSzyiQzWGOASwH4GwkmCQ-9CsstEoz7Ojnm-sBGO3Cpx/exec';
 
   window.onload = function() {
@@ -204,7 +203,6 @@
   function fetchLiveFeed() {
     const listContainer = document.getElementById('trackCardsList');
     
-    // Zorg dat de loader zichtbaar is tijdens het ophalen
     listContainer.innerHTML = `
       <div style="text-align: center; padding: 25px;">
         <div class="loader"></div>
@@ -219,7 +217,6 @@
           return;
         }
 
-        // LOKAAL LIMITEREN TOT MAX 20: Snelheid voor de frontend (ZONDER Google Script aan te passen)
         const latestSubmissions = submissions.slice(0, 20);
 
         let html = '';
@@ -252,38 +249,31 @@
       });
   }
 
-  // Filtert automatische mobiele tekst weg (bijv. "Luister naar dit nummer https://...")
   function extractUrl(text) {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const found = text.match(urlRegex);
     return found ? found[0] : text;
   }
 
-  // Bepaalt platform, formatteert iframes én beveiligt mobiele links tegen crashen
   function parseMediaUrl(url) {
-    // YouTube & Shorts
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
       return { platform: 'YouTube / Shorts', embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`, canEmbed: true };
     }
 
-    // Spotify (Volledig)
     const spotifyMatch = url.match(/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|episode|album|playlist)\/([a-zA-Z0-9]+)/);
     if (spotifyMatch) {
       return { platform: 'Spotify', embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator`, canEmbed: true };
     }
 
-    // Spotify Mobiel (Crash beveiliging)
     if (url.includes('spotify.link')) {
       return { platform: 'Spotify (Mobile Link)', embedUrl: url, canEmbed: false };
     }
 
-    // SoundCloud Mobiel (Crash beveiliging)
     if (url.includes('on.soundcloud.com')) {
       return { platform: 'SoundCloud (Mobile Link)', embedUrl: url, canEmbed: false };
     }
 
-    // SoundCloud (Volledig)
     if (url.includes('soundcloud.com')) {
       return { 
         platform: 'SoundCloud', 
@@ -292,7 +282,6 @@
       };
     }
 
-    // Al het overige
     return { platform: 'Web Link', embedUrl: url, canEmbed: false };
   }
 
@@ -328,7 +317,6 @@
       if (parsed.canEmbed) {
         container.innerHTML = `<iframe src="${currentEmbedUrl}" allow="autoplay; encrypted-media"></iframe>`;
       } else {
-        // Fallback voor mobiele links die anders de iframe laten crashen
         container.innerHTML = `
           <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 166px; background: #18181f; border-radius: 8px; padding: 20px; text-align: center;">
             <span style="font-size: 2rem; margin-bottom: 8px;">📱</span>
@@ -382,6 +370,7 @@
       btn_text: 'Stream on ' + currentPlatform
     };
 
+    // Stap 1: Voeg de nieuwe track toe aan Google Sheets
     fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
@@ -389,21 +378,28 @@
       body: JSON.stringify(payloadAdd)
     }).then(() => {
       setTimeout(() => {
-        const targetRow = 2; 
-        const payloadUnlock = {
-          action: 'unlock',
-          row: targetRow, 
-          feedback: feedback
-        };
+        // Stap 2: Haal de lijst op om te kijken wat de exacte nieuwe rij-index is geworden
+        fetch(GOOGLE_SCRIPT_URL)
+          .then(res => res.json())
+          .then(data => {
+            // De nieuwste toevoeging zit nu op rij 2 in de Google Sheet (direct onder de header op rij 1)
+            const targetRow = 2; 
 
-        fetch(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payloadUnlock)
-        }).then(() => {
-          setTimeout(() => { fetchLiveFeed(); }, 1500);
-        });
+            const payloadUnlock = {
+              action: 'unlock',
+              row: targetRow, 
+              feedback: feedback
+            };
+
+            fetch(GOOGLE_SCRIPT_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payloadUnlock)
+            }).then(() => {
+              setTimeout(() => { fetchLiveFeed(); }, 1500);
+            });
+          });
       }, 1000);
     }).catch(err => console.log("Sheet add note:", err));
 
