@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chatsong - Mysterieus Hidden Gem Drop & Rewards</title>
+  <title>Chatsong - Mystery Hidden Gem Drop & Rewards</title>
   <style>
     :root {
       --bg: #0f0f12;
@@ -72,6 +72,7 @@
     .actions-box { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
     .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
     .share-btn { background: var(--gold); color: #000; }
+    .reset-btn { background: #27272a; border: 1px solid var(--border); }
   </style>
 </head>
 <body>
@@ -81,23 +82,23 @@
   <!-- STEP 1: SUBMIT & REWARDS INTRO -->
   <div class="card" id="submitCard">
     <span class="badge badge-gold">⭐ CHATSONG BLOG REWARDS</span>
-    <h2>Mysterieus Hidden Gem Drop</h2>
-    <p class="sub">Dien je track in of luister blind mee om beloningen te verdienen en leden te werven via onze blog!</p>
+    <h2>Mystery Hidden Gem Drop</h2>
+    <p class="sub">Submit your track or listen blindly to earn rewards, grow your profile, and recruit new members via our blog!</p>
 
     <div class="form-group">
       <label>Platform Link / Mobile Share Link (YouTube Shorts, Spotify, SoundCloud)</label>
-      <input type="url" id="trackUrl" placeholder="Plak je link hier...">
+      <input type="url" id="trackUrl" placeholder="Paste your link here...">
     </div>
 
-    <div class="divider">— OF UPLOAD MP3 —</div>
+    <div class="divider">— OR UPLOAD MP3 —</div>
 
     <div class="form-group">
       <input type="file" id="fileInput" accept="audio/*">
     </div>
 
     <div class="form-group">
-      <label>Jouw Chatsong Gebruikersnaam (Voor punten & beloning)</label>
-      <input type="text" id="memberName" placeholder="Je gebruikersnaam...">
+      <label>Your Chatsong Username (For rewards & points)</label>
+      <input type="text" id="memberName" placeholder="Your username...">
     </div>
 
     <button onclick="createDrop()">Start Hidden Gem Drop 🚀</button>
@@ -105,50 +106,51 @@
 
   <!-- STEP 2: BLIND PLAYER VIEW -->
   <div class="card" id="playerCard" style="display:none;">
-    <span class="badge">🔒 MYSTERY DROP SPELER</span>
+    <span class="badge">🔒 MYSTERY DROP PLAYER</span>
     
     <div class="player-wrapper" id="playerWrapper">
-      <!-- Donkere afdeklaag -->
+      <!-- Dark Mask Overlay -->
       <div class="mask-overlay" id="maskOverlay">
         <div style="font-size: 1.8rem; margin-bottom: 4px;">🎁</div>
-        <div style="font-weight: bold; font-size: 1.1rem;">Geheime Hidden Gem</div>
-        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;" id="platformDetect">Platform detecteren...</div>
+        <div style="font-weight: bold; font-size: 1.1rem;">Secret Hidden Gem</div>
+        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;" id="platformDetect">Detecting platform...</div>
       </div>
 
-      <!-- Speler container -->
+      <!-- Media Container -->
       <div id="mediaContainer"></div>
     </div>
 
     <!-- Timer -->
     <div class="timer-box">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="timer-text" id="timerText">Luister 30 seconden om beloning te ontgrendelen...</div>
+      <div class="timer-text" id="timerText">Listen for 30 seconds to unlock rewards...</div>
     </div>
 
     <div class="status-badge" id="statusBadge">
-      ▶ Start de muziek hierboven om de belonings-timer te starten.
+      ▶ Play the track above to start the reward timer.
     </div>
 
-    <!-- Feedback / Beloningsformulier -->
+    <!-- Feedback / Reward Form -->
     <div id="feedbackForm" style="opacity: 0.4; pointer-events: none; margin-top: 12px;">
       <div class="form-group">
-        <label>Eerlijke feedback (Min. 10 tekens)</label>
-        <textarea id="feedbackText" rows="3" placeholder="Wat vind je van de productie, mix of vibe?"></textarea>
+        <label>Honest Feedback (Min. 10 characters)</label>
+        <textarea id="feedbackText" rows="3" placeholder="What do you think of the production or vibe?"></textarea>
       </div>
-      <button onclick="unlockTrack()" id="unlockBtn" disabled>Claim Beloning & Ontgrendel Artiest 🔓</button>
+      <button onclick="unlockTrack()" id="unlockBtn" disabled>Claim Reward & Unlock Artist 🔓</button>
     </div>
 
-    <!-- Unlocked State & Deelknop met vaste Blog URL -->
+    <!-- Unlocked State & Share / Infinite Submit Actions -->
     <div class="actions-box" id="unlockedActions">
-      <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Originele Track</a>
-      <button class="action-btn share-btn" onclick="shareBlog()">📲 Deel deze Blog & Krijg Extra Punten 🚀</button>
+      <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Original Track</a>
+      <button class="action-btn share-btn" onclick="shareBlog()">📲 Share Blog & Get Extra Points 🚀</button>
+      <button class="action-btn reset-btn" onclick="resetToSubmit()">🔄 Submit Another Track / New Drop</button>
     </div>
   </div>
 
 </div>
 
 <script>
-  // Vaste Blog URL voor ledenwerving en beloning
+  // Permanent Blog URL for member growth and sharing
   const blogUrl = "https://chatsong.nl/blog/1642-mysterieus-hidden-gem-drop";
 
   let rawLink = '';
@@ -159,12 +161,11 @@
   function createDrop() {
     const urlInput = document.getElementById('trackUrl').value.trim();
     const fileInput = document.getElementById('fileInput');
-    const memberName = document.getElementById('memberName').value.trim();
     const container = document.getElementById('mediaContainer');
     const platformDetect = document.getElementById('platformDetect');
 
     if (!urlInput && fileInput.files.length === 0) {
-      alert("Voer een muzieklink in of selecteer een MP3-bestand.");
+      alert("Please enter a music link or select an MP3 file.");
       return;
     }
 
@@ -172,7 +173,7 @@
     rawLink = urlInput;
 
     if (fileInput.files.length > 0) {
-      platformDetect.innerText = "Bron: Geüpload Bestand";
+      platformDetect.innerText = "Source: Uploaded File";
       const audioUrl = URL.createObjectURL(fileInput.files[0]);
       container.innerHTML = `<audio id="blindAudio" controls src="${audioUrl}"></audio>`;
       setupAudioListener(document.getElementById('blindAudio'));
@@ -182,7 +183,7 @@
       
       if (parsed.type === 'iframe') {
         container.innerHTML = `<iframe src="${parsed.embedUrl}" allow="autoplay; encrypted-media"></iframe>`;
-        startTimer(); // Start direct timer voor iframes (YouTube/Spotify/SoundCloud)
+        startTimer(); // Start timer directly for iframes
       } else {
         container.innerHTML = `<audio id="blindAudio" controls src="${urlInput}"></audio>`;
         setupAudioListener(document.getElementById('blindAudio'));
@@ -193,7 +194,7 @@
     document.getElementById('playerCard').style.display = 'block';
   }
 
-  // Universele URL Parser (Shorts, Spotify, YouTube, SoundCloud)
+  // Universal URL Parser (Shorts, Spotify, YouTube, SoundCloud)
   function parseMediaUrl(url) {
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
@@ -221,7 +222,7 @@
       };
     }
 
-    return { type: 'audio', platform: 'Directe Audio Stream', embedUrl: url };
+    return { type: 'audio', platform: 'Direct Audio Stream', embedUrl: url };
   }
 
   function setupAudioListener(audioEl) {
@@ -239,7 +240,7 @@
         document.getElementById('progressFill').style.width = percent + '%';
         
         const remaining = requiredSeconds - listenedSeconds;
-        document.getElementById('timerText').innerText = `Nog ${remaining} seconden luisteren...`;
+        document.getElementById('timerText').innerText = `${remaining} seconds left to unlock...`;
       } else {
         clearInterval(timerInterval);
         enableUnlock();
@@ -248,8 +249,8 @@
   }
 
   function enableUnlock() {
-    document.getElementById('timerText').innerText = "✅ 30 seconden luisteren voltooid!";
-    document.getElementById('statusBadge').innerText = "💬 Geef feedback om je beloning te claimen en de artiest te ontgrendelen.";
+    document.getElementById('timerText').innerText = "✅ 30 seconds listening completed!";
+    document.getElementById('statusBadge').innerText = "💬 Submit feedback to claim your reward and reveal the artist.";
     
     const form = document.getElementById('feedbackForm');
     form.style.opacity = "1";
@@ -260,19 +261,19 @@
   function unlockTrack() {
     const feedback = document.getElementById('feedbackText').value.trim();
     if (feedback.length < 10) {
-      alert("Geef ten minste 10 tekens aan feedback op.");
+      alert("Please provide at least 10 characters of feedback.");
       return;
     }
 
-    // Verberg maskering zodat de track zichtbaar/ontgrendeld wordt
+    // Remove mask to reveal content
     document.getElementById('maskOverlay').classList.add('unlocked');
 
     // Status update
     const badge = document.getElementById('statusBadge');
-    badge.innerText = "🎉 Beloning toegekend & Artiest Ontgrendeld!";
+    badge.innerText = "🎉 Reward Granted & Artist Unlocked!";
     badge.classList.add('success');
 
-    // Toon knoppen voor originele link en delen van de blog
+    // Show actions (original link, share, and reset for infinite looping)
     document.getElementById('unlockedActions').style.display = 'flex';
     if (rawLink) {
       document.getElementById('originalLinkBtn').href = rawLink;
@@ -281,18 +282,44 @@
     document.getElementById('unlockBtn').style.display = 'none';
   }
 
-  // Deel de officiële blog URL voor ledenwerving (werkt op mobiel en desktop)
+  // Share blog URL for viral recruitment
   function shareBlog() {
     if (navigator.share) {
       navigator.share({
-        title: 'Mysterieus Hidden Gem Drop - Chatsong',
-        text: 'Luister mee op de Chatsong blog, geef je oordeel en verdien beloningen!',
+        title: 'Mystery Hidden Gem Drop - Chatsong',
+        text: 'Listen on the Chatsong blog, drop your feedback, and earn rewards!',
         url: blogUrl
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(blogUrl);
-      alert("Officiële blog link gekopieerd: " + blogUrl + "\nDeel hem met vrienden om extra punten te verdienen!");
+      alert("Official blog link copied: " + blogUrl + "\nShare it with friends to earn extra points!");
     }
+  }
+
+  // Reset function for infinite track drops / submissions
+  function resetToSubmit() {
+    if (timerInterval) clearInterval(timerInterval);
+    listenedSeconds = 0;
+    
+    // Reset inputs and UI states
+    document.getElementById('trackUrl').value = '';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('feedbackText').value = '';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('timerText').innerText = "Listen for 30 seconds to unlock rewards...";
+    document.getElementById('statusBadge').innerText = "▶ Play the track above to start the reward timer.";
+    document.getElementById('statusBadge').classList.remove('success');
+    
+    document.getElementById('maskOverlay').classList.remove('unlocked');
+    document.getElementById('feedbackForm').style.opacity = "0.4";
+    document.getElementById('feedbackForm').style.pointerEvents = "none";
+    document.getElementById('unlockBtn').disabled = true;
+    document.getElementById('unlockBtn').style.display = 'block';
+    document.getElementById('unlockedActions').style.display = 'none';
+
+    // Switch back to submit view
+    document.getElementById('playerCard').style.display = 'none';
+    document.getElementById('submitCard').style.display = 'block';
   }
 </script>
 
