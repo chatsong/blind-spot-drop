@@ -182,7 +182,6 @@
   let countdownTimer = null;
   const totalWaitSeconds = 3;
 
-  // JOUW JUISTE URL HIER INGEVULD:
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyfn_WfP1lMPkwhlvvmD_xSeSzyiQzWGOASwH4GwkmCQ-9CsstEoz7Ojnm-sBGO3Cpx/exec';
 
   window.onload = function() {
@@ -225,11 +224,48 @@
       });
   }
 
-  // HIER IS DE NIEUWE FILTER FUNCTIE VOOR DE DEELLINKS!
+  // Filtert extra tekst weg en behoudt alleen de link
   function extractUrl(text) {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const found = text.match(urlRegex);
     return found ? found[0] : text;
+  }
+
+  // Checkt welk platform het is en of we het kunnen embedden
+  function parseMediaUrl(url) {
+    // 1. YouTube
+    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
+    if (ytMatch) {
+      return { platform: 'YouTube / Shorts', embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`, canEmbed: true };
+    }
+
+    // 2. Spotify (Volledige links, pakt nu ook '/intl-nl/' etc)
+    const spotifyMatch = url.match(/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|episode|album|playlist)\/([a-zA-Z0-9]+)/);
+    if (spotifyMatch) {
+      return { platform: 'Spotify', embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator`, canEmbed: true };
+    }
+
+    // 3. Spotify (Mobiele korte deel-links)
+    if (url.includes('spotify.link')) {
+      return { platform: 'Spotify (Mobile Link)', embedUrl: url, canEmbed: false };
+    }
+
+    // 4. SoundCloud (Mobiele korte deel-links - voorkomt de error van je screenshot!)
+    if (url.includes('on.soundcloud.com')) {
+      return { platform: 'SoundCloud (Mobile Link)', embedUrl: url, canEmbed: false };
+    }
+
+    // 5. SoundCloud (Volledige links)
+    if (url.includes('soundcloud.com')) {
+      return { 
+        platform: 'SoundCloud', 
+        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`,
+        canEmbed: true
+      };
+    }
+
+    // 6. Al het overige
+    return { platform: 'Web Stream', embedUrl: url, canEmbed: false };
   }
 
   function createDrop() {
@@ -244,53 +280,42 @@
       return;
     }
 
-    // PAS DE EXTRACTOR TOE ZODAT ALLEEN DE LINK OVERBLIJFT
     let urlInput = extractUrl(rawInput);
-
     rawLink = urlInput || "Uploaded Audio File";
     currentRoleText = role;
     document.getElementById('roleBadge').innerText = currentRoleText;
     container.innerHTML = '';
 
-    currentPlatform = "Direct Link";
     if (fileInput.files.length > 0) {
       currentPlatform = "Audio Upload";
       platformDetect.innerText = "Source: Uploaded Audio File";
       currentEmbedUrl = URL.createObjectURL(fileInput.files[0]);
       container.innerHTML = `<audio controls src="${currentEmbedUrl}"></audio>`;
     } else {
-      const parsed = parseMediaUrl(urlInput); // Hier gaat nu altijd een schone link in!
+      const parsed = parseMediaUrl(urlInput); 
       currentPlatform = parsed.platform;
       currentEmbedUrl = parsed.embedUrl;
       platformDetect.innerText = `Platform: ${currentPlatform}`;
-      container.innerHTML = `<iframe src="${currentEmbedUrl}" allow="autoplay; encrypted-media"></iframe>`;
+
+      // Als de speler het ondersteunt laden we de iframe. Zo niet (mobiele link), dan tonen we een strakke placeholder!
+      if (parsed.canEmbed) {
+        container.innerHTML = `<iframe src="${currentEmbedUrl}" allow="autoplay; encrypted-media"></iframe>`;
+      } else {
+        container.innerHTML = `
+          <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 166px; background: #18181f; border-radius: 8px; padding: 20px; text-align: center;">
+            <span style="font-size: 2rem; margin-bottom: 8px;">📱</span>
+            <strong style="color: #fff; font-size: 0.95rem;">Mobile Share Link Detected</strong>
+            <span style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">Player preview is unsupported for short-links, but your track is safely registered!</span>
+            <a href="${currentEmbedUrl}" target="_blank" style="margin-top: 12px; color: var(--accent); font-weight: bold; text-decoration: none; font-size: 0.85rem; background: rgba(139, 92, 246, 0.15); padding: 6px 12px; border-radius: 6px;">🔗 Test Original Link</a>
+          </div>
+        `;
+      }
     }
 
     document.getElementById('submitCard').style.display = 'none';
     document.getElementById('playerCard').style.display = 'block';
 
     startAutoTimer();
-  }
-
-  function parseMediaUrl(url) {
-    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
-    if (ytMatch) {
-      return { platform: 'YouTube / Shorts', embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1` };
-    }
-
-    const spotifyMatch = url.match(/open\.spotify\.com\/(track|episode|album|playlist)\/([a-zA-Z0-9]+)/);
-    if (spotifyMatch) {
-      return { platform: 'Spotify', embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator` };
-    }
-
-    if (url.includes('soundcloud.com') || url.includes('on.soundcloud.com')) {
-      return { 
-        platform: 'SoundCloud', 
-        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false` 
-      };
-    }
-
-    return { platform: 'Web Stream', embedUrl: url };
   }
 
   function startAutoTimer() {
