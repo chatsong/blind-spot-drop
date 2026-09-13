@@ -89,7 +89,7 @@
   <div class="card" id="submitCard">
     <span class="badge">👁️ UNIVERSAL BLIND DROP</span>
     <h2>Submit Track or Short</h2>
-    <p class="sub">Paste complete mobile share text or standard link (SoundCloud, Spotify, YouTube, Bandcamp, Mixcloud)!</p>
+    <p class="sub">Paste mobile share text or standard link (SoundCloud, Spotify, YouTube, Bandcamp, Mixcloud)!</p>
 
     <div class="form-group">
       <label>Paste Share Text / Link here</label>
@@ -99,11 +99,6 @@
     <div class="form-group">
       <label>Artist Name (Hidden until unlocked)</label>
       <input type="text" id="artistName" placeholder="e.g. Chatsong / Artist Handle">
-    </div>
-
-    <div class="form-group">
-      <label>Artist Social / Profile Link (Hidden until unlocked)</label>
-      <input type="url" id="artistProfileUrl" placeholder="TikTok, Instagram or Spotify profile link">
     </div>
 
     <button onclick="createDrop()">Add Track & Launch Blind Player 🚀</button>
@@ -136,7 +131,6 @@
 
     <div class="actions-box" id="unlockedActions">
       <a href="#" target="_blank" class="action-btn platform-btn" id="originalLinkBtn">⭐ Stream on Official Platform</a>
-      <a href="#" target="_blank" class="action-btn chatsong-btn" id="artistProfileBtn" style="display:none;">👤 View Artist Profile</a>
       <button class="action-btn share-btn" onclick="shareDrop()">📲 Share Blind Drop</button>
       <button class="action-btn delete-btn" onclick="deleteCurrentDrop()">🗑️ Delete This Track</button>
       <button class="action-btn new-drop-btn" onclick="resetToSubmit()">➕ Submit Another Track</button>
@@ -153,7 +147,6 @@
 </div>
 
 <script>
-  // VERVANG DIT MET JOUW GOOGLE APPS SCRIPT WEB-APP URL
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzSG0_V-I1JKMFUD2EXIJp-yDd4PLNJfv56wYLxvoPZbvG1hAUOPyI0KTcER5Jd0qK2/exec';
 
   let dropsList = [];
@@ -183,21 +176,20 @@
   }
 
   function parseMediaUrl(inputString) {
-    // 1. Haal automatisch de URL (http/https) uit eventuele gekopieerde social media tekst
     const urlMatch = inputString.match(/(https?:\/\/[^\s]+)/g);
     const cleanUrl = urlMatch ? urlMatch[0] : inputString.trim();
 
-    // 2. SOUNDCLOUD (Herkent zowel soundcloud.com als de mobiele on.soundcloud.com shortlinks)
+    // SoundCloud: gebruik de volledige URL voor de widget, of vang korte links op
     if (cleanUrl.includes('soundcloud.com') || cleanUrl.includes('on.soundcloud.com')) {
+      let scEmbedUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(cleanUrl)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`;
       return { 
         platform: 'SoundCloud', 
-        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(cleanUrl)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`,
+        embedUrl: scEmbedUrl,
         rawUrl: cleanUrl,
         btnText: '🟠 Stream on SoundCloud'
       };
     }
 
-    // 3. SPOTIFY
     const spotifyMatch = cleanUrl.match(/(?:open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:track|episode)\/|spotify:track:)([a-zA-Z0-9]+)/);
     if (spotifyMatch) {
       return { 
@@ -208,17 +200,15 @@
       };
     }
 
-    // 4. BANDCAMP
     if (cleanUrl.includes('bandcamp.com')) {
       return { 
         platform: 'Bandcamp', 
-        embedUrl: cleanUrl, // Bandcamp link direct doorsturen of via hun embed structuur
+        embedUrl: cleanUrl,
         rawUrl: cleanUrl,
         btnText: '🎵 Stream on Bandcamp'
       };
     }
 
-    // 5. MIXCLOUD
     if (cleanUrl.includes('mixcloud.com')) {
       const path = cleanUrl.replace(/https?:\/\/(www\.)?mixcloud\.com/, '');
       return { 
@@ -229,7 +219,6 @@
       };
     }
 
-    // 6. YOUTUBE / SHORTS
     const ytMatch = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?.*v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
       return { 
@@ -246,7 +235,6 @@
   async function createDrop() {
     const rawInput = document.getElementById('trackUrl').value.trim();
     const artistName = document.getElementById('artistName').value.trim() || 'Unknown Artist';
-    const profileLink = document.getElementById('artistProfileUrl').value.trim();
 
     if (!rawInput) {
       alert("Please paste a track link or share text.");
@@ -259,7 +247,7 @@
       action: 'add',
       artist_name: artistName,
       raw_link: mediaData.rawUrl,
-      profile_link: profileLink,
+      profile_link: mediaData.rawUrl, // Standaard doorsturen naar de tracklink bij unlock
       platform: mediaData.platform,
       embed_url: mediaData.embedUrl,
       btn_text: mediaData.btnText
@@ -276,7 +264,6 @@
 
     document.getElementById('trackUrl').value = '';
     document.getElementById('artistName').value = '';
-    document.getElementById('artistProfileUrl').value = '';
   }
 
   function loadDropIntoPlayer(index) {
@@ -289,7 +276,6 @@
 
     const container = document.getElementById('mediaContainer');
     
-    // Specifieke afhandeling als het Bandcamp is of een standaard iframe
     if (drop.platform === 'Bandcamp') {
       container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:20px;text-align:center;"><a href="${drop.raw_link}" target="_blank" class="action-btn platform-btn" style="text-decoration:none;">🎵 Open Bandcamp Track</a></div>`;
     } else {
@@ -403,11 +389,6 @@
       const origBtn = document.getElementById('originalLinkBtn');
       origBtn.href = drop.raw_link;
       origBtn.innerText = drop.btn_text || '⭐ Stream on Platform';
-    }
-    if (drop.profile_link) {
-      const profBtn = document.getElementById('artistProfileBtn');
-      profBtn.href = drop.profile_link;
-      profBtn.style.display = 'block';
     }
   }
 
