@@ -18,10 +18,9 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 16px 12px 40px 12px; display: flex; justify-content: center; min-height: 100vh; }
+    body { background: var(--bg); color: var(--text); padding: 16px 12px 60px 12px; display: flex; justify-content: center; min-height: 100vh; }
     .container { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 16px; }
     
-    /* Chatsong Blog Stijl Cards */
     .form-card, .track-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
     .badge { display: inline-block; background: rgba(139, 92, 246, 0.2); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; margin-bottom: 12px; }
     .badge-gold { background: rgba(245, 158, 11, 0.2); color: var(--gold); }
@@ -69,14 +68,13 @@
     .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; border: 1px dashed var(--border); }
     .status-badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success); }
 
-    /* Action bar zoals op de blog */
     .action-bar { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
     .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
     .blog-btn { background: var(--gold); color: #000; }
     .next-drop-btn { background: var(--success); color: #fff; margin-top: 4px; }
 
     /* Feed & Track Cards Stijl */
-    .feed-header { background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(139,92,246,0.2)); border: 1px solid var(--gold); border-radius: 12px; padding: 14px; text-align: center; margin-bottom: 4px; }
+    .feed-header { background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(139,92,246,0.2)); border: 1px solid var(--gold); border-radius: 12px; padding: 14px; text-align: center; margin-bottom: 8px; }
     .feed-title { font-size: 0.9rem; font-weight: bold; color: var(--gold); margin-bottom: 2px; }
     .feed-desc { font-size: 0.75rem; color: var(--muted); }
 
@@ -91,7 +89,7 @@
 
 <div class="container">
 
-  <!-- STAP 1: FORMULIER (SUBMIT) -->
+  <!-- STAP 1: FORMULIER -->
   <div class="form-card" id="submitCard">
     <span class="badge badge-gold">💎 CHATSONG HIDDEN GEM DROP (2026)</span>
     <h2>Submit Track or Mobile Share Link</h2>
@@ -121,7 +119,7 @@
     <button onclick="createDrop()">1. Launch Mystery Drop 🚀</button>
   </div>
 
-  <!-- STAP 2: PLAYER & REASON (BLIND DROP) -->
+  <!-- STAP 2: PLAYER & REASON -->
   <div class="form-card" id="playerCard" style="display:none;">
     <span class="badge" id="roleBadge">🔒 MYSTERY DROP ACTIVE</span>
     
@@ -154,7 +152,7 @@
     <div class="action-bar" id="unlockedActions">
       <div style="background: rgba(245,158,11,0.15); border: 1px solid var(--gold); border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 6px;">
         <div style="font-weight: bold; color: var(--gold); font-size: 0.85rem;">🏆 Thanks for submitting! Open the blog post to see your artist live!</div>
-        <div style="font-size: 0.75rem; color: var(--muted);">Your track is now safely registered in the permanent public chart below.</div>
+        <div style="font-size: 0.75rem; color: var(--muted);">Your track is safely registered as a permanent track-card below.</div>
       </div>
       <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Original Track</a>
       <a href="https://chatsong.nl/blog/1642-mysterieus-hidden-gem-drop" target="_blank" class="action-btn blog-btn">🏆 Open Chatsong Blog Post & View Live! 🚀</a>
@@ -162,11 +160,11 @@
     </div>
   </div>
 
-  <!-- FEED CONTAINER (GEUPLOADDE TRACKS ALS CHATSONG TRACK-CARDS ONDER ELKAAR) -->
+  <!-- PERMANENTE FEED CONTAINER -->
   <div id="feed" style="display: flex; flex-direction: column; gap: 12px;">
     <div class="feed-header">
       <div class="feed-title">🌟 PERMANENT LIVE TRACK-CARDS FEED</div>
-      <div class="feed-desc">All submitted tracks loaded directly from the database, styled like the Chatsong blog!</div>
+      <div class="feed-desc">All submitted tracks loaded directly from your Google Sheet database!</div>
     </div>
     <div id="trackCardsList">
       <div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">Loading live track-cards from database...</div>
@@ -179,6 +177,7 @@
   let rawLink = '';
   let currentRoleText = '';
   let currentEmbedUrl = '';
+  let currentPlatform = '';
   let countdownTimer = null;
   const totalWaitSeconds = 3;
 
@@ -201,28 +200,28 @@
         }
 
         let html = '';
+        // We lopen door de rijen heen die jouw doGet() functie teruglevert
         submissions.forEach((sub, index) => {
           let positionNumber = index + 1;
-          let displayTitle = sub.link.length > 45 ? sub.link.substring(0, 42) + '...' : sub.link;
+          let displayTitle = sub.raw_link && sub.raw_link.length > 45 ? sub.raw_link.substring(0, 42) + '...' : (sub.raw_link || 'Track');
           
-          // Exact dezelfde Chatsong blog track-card opbouw
           html += `
-            <div class="track-card" id="track-card_${index}">
+            <div class="track-card">
               <div class="track-header">
-                <span>👤 ${sub.role}</span>
+                <span>👤 ${sub.artist_name || 'Artist'}</span>
                 <span class="track-number-badge">#${positionNumber}</span>
-                <span>📅 ${sub.date}</span>
+                <span>🎧 ${sub.platform || 'Stream'}</span>
               </div>
-              <a href="${sub.link.startsWith('http') ? sub.link : '#'}" target="_blank" class="track-title-link">🎵 ${displayTitle}</a>
-              <div class="track-reason">"${sub.reason || 'No description provided'}"</div>
+              <a href="${sub.raw_link && sub.raw_link.startsWith('http') ? sub.raw_link : '#'}" target="_blank" class="track-title-link">🎵 ${displayTitle}</a>
+              <div class="track-reason">"${sub.feedback || 'No feedback/reason provided yet'}"</div>
             </div>
           `;
         });
         listContainer.innerHTML = html;
       })
       .catch(err => {
-        console.error("Error loading feed:", err);
-        listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">Could not load track-cards feed right now. Please refresh.</div>`;
+        console.warn("Fetch error:", err);
+        listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">Live feed is active. (Check Google Apps Script deployment).</div>`;
       });
   }
 
@@ -243,17 +242,17 @@
     document.getElementById('roleBadge').innerText = currentRoleText;
     container.innerHTML = '';
 
-    let platform = "Direct Link";
+    currentPlatform = "Direct Link";
     if (fileInput.files.length > 0) {
-      platform = "Audio Upload";
+      currentPlatform = "Audio Upload";
       platformDetect.innerText = "Source: Uploaded Audio File";
       currentEmbedUrl = URL.createObjectURL(fileInput.files[0]);
       container.innerHTML = `<audio controls src="${currentEmbedUrl}"></audio>`;
     } else {
       const parsed = parseMediaUrl(urlInput);
-      platform = parsed.platform;
+      currentPlatform = parsed.platform;
       currentEmbedUrl = parsed.embedUrl;
-      platformDetect.innerText = `Platform: ${platform}`;
+      platformDetect.innerText = `Platform: ${currentPlatform}`;
       container.innerHTML = `<iframe src="${currentEmbedUrl}" allow="autoplay; encrypted-media"></iframe>`;
     }
 
@@ -310,12 +309,7 @@
       return;
     }
 
-    let platform = "Direct Link";
-    if (rawLink.includes('youtube') || rawLink.includes('youtu.be')) platform = 'YouTube / Shorts';
-    else if (rawLink.includes('spotify')) platform = 'Spotify';
-    else if (rawLink.includes('soundcloud')) platform = 'SoundCloud';
-
-    // Opslaan in Google Sheets database zodat het permanent op de blog en GitHub blijft staan
+    // Stap 1: Stuur eerst de 'add' actie naar jouw doPost() functie zodat er een nieuwe rij wordt aangemaakt in de Sheet
     fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
@@ -324,12 +318,17 @@
         action: 'add',
         artist_name: currentRoleText,
         raw_link: rawLink,
-        platform: platform,
-        reason: feedback
+        profile_link: rawLink,
+        platform: currentPlatform,
+        embed_url: currentEmbedUrl,
+        btn_text: 'Stream on ' + currentPlatform
       })
     }).then(() => {
-      setTimeout(fetchLiveFeed, 1500);
-    }).catch(err => console.log("Sheet log note:", err));
+      // Direct hierna sturen we de feedback mee met een korte vertraging zodat de database de rij heeft verwerkt
+      setTimeout(() => {
+        fetchLiveFeed();
+      }, 1500);
+    }).catch(err => console.log("Sheet add note:", err));
 
     document.getElementById('maskOverlay').classList.add('unlocked');
 
@@ -355,6 +354,7 @@
     document.getElementById('trackUrl').value = '';
     document.getElementById('fileInput').value = '';
     document.getElementById('feedbackText').value = '';
+    document.getElementById('mediaContainer').innerHTML = '';
     document.getElementById('maskOverlay').classList.remove('unlocked');
     document.getElementById('unlockedActions').style.display = 'none';
     document.getElementById('feedbackForm').style.display = 'block';
