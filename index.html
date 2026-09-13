@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chatsong - Universal Blind Drop</title>
+  <title>Chatsong - Universal Audio Blind Drop</title>
   <style>
     :root {
       --bg: #0f0f12;
@@ -11,6 +11,7 @@
       --accent: #8b5cf6;
       --accent-hover: #7c3aed;
       --chatsong: #6366f1;
+      --danger: #ef4444;
       --text: #ffffff;
       --muted: #a1a1aa;
       --border: #27272a;
@@ -32,16 +33,13 @@
     input, textarea { width: 100%; padding: 12px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
     input:focus, textarea:focus { outline: none; border-color: var(--accent); }
 
-    .divider { text-align: center; color: var(--muted); font-size: 0.75rem; margin: 10px 0; }
-
     button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
     button:hover { background: var(--accent-hover); }
 
-    /* FULL BLIND PLAYER CONTAINER */
     .player-wrapper { 
       position: relative; 
       width: 100%; 
-      height: 160px; 
+      height: 120px; 
       border-radius: 12px; 
       overflow: hidden; 
       background: #000; 
@@ -49,7 +47,6 @@
       border: 1px solid var(--border); 
     }
     
-    /* Afdeklaag bedekt NU 100% van het scherm! */
     .mask-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -68,18 +65,17 @@
     .mask-overlay.unlocked { opacity: 0; pointer-events: none; display: none !important; }
 
     .play-btn-circle {
-      width: 50px; height: 50px;
+      width: 48px; height: 48px;
       background: var(--accent);
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      margin-bottom: 8px; font-size: 1.2rem;
+      margin-bottom: 6px; font-size: 1.2rem;
       box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
     }
 
-    iframe { width: 100%; height: 100%; border: none; display: block; }
-    audio { width: 100%; height: 50px; margin-top: 55px; }
+    iframe { width: 100%; height: 100%; border: none; display: block; opacity: 0.01; }
+    .unlocked iframe { opacity: 1 !important; }
 
-    /* Progress & Timer */
     .timer-box { margin: 12px 0; text-align: center; }
     .progress-bar { width: 100%; height: 6px; background: #27272a; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
     .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s linear; }
@@ -93,17 +89,23 @@
     .chatsong-btn { background: var(--chatsong); }
     .platform-btn { background: #16a34a; }
     .share-btn { background: var(--accent); }
-    .new-drop-btn { background: #3b82f6; margin-top: 8px; }
+    .delete-btn { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+    .delete-btn:hover { background: var(--danger); color: #fff; }
+    .new-drop-btn { background: #3b82f6; margin-top: 4px; }
 
-    .feed-container { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-    .feed-item { background: #22222b; border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+    .feed-container { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .feed-item { background: #22222b; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .feed-item:hover { border-color: var(--accent); }
-    .feed-number { font-weight: 800; font-size: 1.1rem; color: var(--accent); min-width: 40px; }
-    .feed-info { flex-grow: 1; text-align: left; }
-    .feed-title { font-size: 0.9rem; font-weight: bold; }
-    .feed-platform { font-size: 0.75rem; color: var(--muted); }
-    .feed-status { font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); }
+    .feed-click-area { flex-grow: 1; display: flex; align-items: center; gap: 10px; cursor: pointer; min-width: 0; }
+    .feed-number { font-weight: 800; font-size: 1rem; color: var(--accent); min-width: 30px; }
+    .feed-info { text-align: left; overflow: hidden; }
+    .feed-title { font-size: 0.85rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .feed-platform { font-size: 0.7rem; color: var(--muted); }
+    .feed-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .feed-status { font-size: 0.7rem; padding: 3px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); }
     .feed-status.unlocked { background: rgba(16, 185, 129, 0.2); color: var(--success); font-weight: bold; }
+    .icon-del-btn { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    .icon-del-btn:hover { background: var(--danger); color: #fff; }
   </style>
 </head>
 <body>
@@ -114,24 +116,24 @@
   <div class="card" id="submitCard">
     <span class="badge">👁️ UNIVERSAL BLIND DROP</span>
     <h2>Submit Track or Short</h2>
-    <p class="sub">Paste Spotify, SoundCloud or YouTube URL (Shorts & mobile links supported!)</p>
+    <p class="sub">Paste YouTube (Shorts), Spotify, SoundCloud, Mixcloud or any mobile link!</p>
 
     <div class="form-group">
-      <label>Platform Track / Video Link</label>
-      <input type="url" id="trackUrl" placeholder="Paste Spotify, SoundCloud, YouTube / Shorts URL...">
+      <label>Platform / Mobile Share Link</label>
+      <input type="url" id="trackUrl" placeholder="Paste Mixcloud, Shorts, Spotify, SoundCloud URL...">
     </div>
 
     <div class="form-group">
-      <label>Artist Name or Handle (Hidden until unlocked)</label>
+      <label>Artist Name (Hidden until unlocked)</label>
       <input type="text" id="artistName" placeholder="e.g. DJ Aquana / Artist Handle">
     </div>
 
     <div class="form-group">
-      <label>Artist Profile / Social Link (Hidden until unlocked)</label>
+      <label>Artist Social / Profile Link (Hidden until unlocked)</label>
       <input type="url" id="artistProfileUrl" placeholder="TikTok, Instagram or Spotify profile link">
     </div>
 
-    <button onclick="createDrop()">Add Track & Launch Stream Player 🚀</button>
+    <button onclick="createDrop()">Add Track & Launch Blind Player 🚀</button>
   </div>
 
   <!-- BLIND SPELER -->
@@ -139,29 +141,28 @@
     <span class="badge" id="activeTrackBadge">🔒 MYSTERY DROP</span>
     
     <div class="player-wrapper" id="playerWrapper">
-      <!-- 100% Blinde overlay -->
       <div class="mask-overlay" id="maskOverlay" onclick="startAudio()">
         <div class="play-btn-circle">▶</div>
-        <div style="font-weight: bold; font-size: 1rem;">Click to Start Listening</div>
-        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;" id="platformDetect">Detecting platform...</div>
+        <div style="font-weight: bold; font-size: 0.95rem;">Tap to Start Audio</div>
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 2px;" id="platformDetect">Detecting platform...</div>
       </div>
 
-      <div id="mediaContainer"></div>
+      <div id="mediaContainer" style="height: 100%;"></div>
     </div>
 
     <div class="timer-box">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="timer-text" id="timerText">Click the player above to start...</div>
+      <div class="timer-text" id="timerText">Tap above to start listening...</div>
     </div>
 
     <div class="status-badge" id="statusBadge">
-      ▶ Click the player to start audio & 30s unlock timer.
+      ▶ Tap player to start audio & 30s timer.
     </div>
 
     <div id="feedbackForm" style="opacity: 0.4; pointer-events: none; margin-top: 12px;">
       <div class="form-group">
         <label>Honest Feedback (Min. 10 characters)</label>
-        <textarea id="feedbackText" rows="3" placeholder="How is the production, mix, or vibe?"></textarea>
+        <textarea id="feedbackText" rows="3" placeholder="How is the mix, arrangement, or vibe?"></textarea>
       </div>
       <button onclick="unlockTrack()" id="unlockBtn" disabled>Submit Feedback & Reveal Artist 🔓</button>
     </div>
@@ -170,6 +171,7 @@
       <a href="#" target="_blank" class="action-btn platform-btn" id="originalLinkBtn">⭐ Stream on Official Platform</a>
       <a href="#" target="_blank" class="action-btn chatsong-btn" id="artistProfileBtn" style="display:none;">👤 View Artist Profile</a>
       <button class="action-btn share-btn" onclick="shareDrop()">📲 Share Blind Drop</button>
+      <button class="action-btn delete-btn" onclick="deleteCurrentDrop()">🗑️ Delete This Track</button>
       <button class="action-btn new-drop-btn" onclick="resetToSubmit()">➕ Submit Another Track</button>
     </div>
   </div>
@@ -184,8 +186,8 @@
 </div>
 
 <script>
-  // PLAK HIER JOUW GOOGLE APPS SCRIPT WEB-APP URL
-  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbypLzox45epM9g2YdhLShZZCOZYWDbuIOBVskB-mGTlvzSpRpk0m3xnpBC9zMjGW3x9/exec';
+  // VERVANG DIT MET JOUW GOOGLE APPS SCRIPT WEB-APP URL
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyRGqbq1IZQKpGixAGAE18SvBoZl7uhdm2vJG1STjOAEr_eFaU2zXOlrD1uwE8vDu2_/exec';
 
   let dropsList = [];
   let currentDropIndex = null;
@@ -208,12 +210,21 @@
   }
 
   function parseMediaUrl(url) {
+    if (url.includes('mixcloud.com')) {
+      const path = url.replace(/https?:\/\/(www\.)?mixcloud\.com/, '');
+      return { 
+        platform: 'Mixcloud', 
+        embedUrl: `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(path)}&hide_cover=1&light=1&autoplay=1`,
+        btnText: '☁️ Stream on Mixcloud'
+      };
+    }
+
     const spotifyMatch = url.match(/(?:open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:track|episode)\/|spotify:track:)([a-zA-Z0-9]+)/);
     if (spotifyMatch) {
       return { 
         platform: 'Spotify', 
         embedUrl: `https://open.spotify.com/embed/track/${spotifyMatch[1]}?utm_source=generator`,
-        btnText: '💚 Stream & Save on Spotify'
+        btnText: '💚 Stream on Spotify'
       };
     }
 
@@ -221,20 +232,20 @@
       return { 
         platform: 'SoundCloud', 
         embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=false`,
-        btnText: '☁️ Stream on SoundCloud'
+        btnText: '🟠 Stream on SoundCloud'
       };
     }
 
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?.*v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
       return { 
-        platform: 'YouTube', 
+        platform: 'YouTube / Shorts', 
         embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&enablejsapi=1`,
-        btnText: '🔔 Stream on YouTube'
+        btnText: '▶ Stream on YouTube'
       };
     }
 
-    return { platform: 'Web Audio', embedUrl: url, btnText: '🎧 Open Platform Link' };
+    return { platform: 'External Audio / Video', embedUrl: url, btnText: '🎧 Open Platform Link' };
   }
 
   async function createDrop() {
@@ -284,16 +295,17 @@
     const mask = document.getElementById('maskOverlay');
     container.innerHTML = '';
 
-    document.getElementById('activeTrackBadge').innerText = `🔒 MYSTERY DROP #${drop.id}`;
+    document.getElementById('activeTrackBadge').innerText = `🔒 MYSTERY DROP`;
     document.getElementById('platformDetect').innerText = `Platform: ${drop.platform}`;
 
     mask.classList.remove('unlocked');
+    document.getElementById('playerWrapper').classList.remove('unlocked');
     container.innerHTML = `<iframe id="mediaIframe" src="${drop.embed_url}" allow="autoplay; encrypted-media"></iframe>`;
 
     document.getElementById('progressFill').style.width = '0%';
-    document.getElementById('timerText').innerText = 'Click to start listening...';
+    document.getElementById('timerText').innerText = 'Tap above to start listening...';
     document.getElementById('statusBadge').className = 'status-badge';
-    document.getElementById('statusBadge').innerText = '▶ Click player to hear sound & start timer.';
+    document.getElementById('statusBadge').innerText = '▶ Tap player to start audio & 30s timer.';
     
     document.getElementById('feedbackForm').style.display = 'block';
     document.getElementById('feedbackForm').style.opacity = '0.4';
@@ -303,6 +315,7 @@
 
     if (drop.unlocked) {
       mask.classList.add('unlocked');
+      document.getElementById('playerWrapper').classList.add('unlocked');
       document.getElementById('statusBadge').innerText = `🎉 Track Unlocked: ${drop.artist_name}`;
       document.getElementById('statusBadge').classList.add('success');
       document.getElementById('feedbackForm').style.display = 'none';
@@ -316,7 +329,6 @@
 
   function startAudio() {
     if (!timerInterval && !dropsList[currentDropIndex].unlocked) {
-      // Refresh iframe met autoplay
       const iframe = document.getElementById('mediaIframe');
       if (iframe) {
         let src = iframe.src;
@@ -345,8 +357,8 @@
   }
 
   function enableUnlock() {
-    document.getElementById('timerText').innerText = "✅ Required 30s listening reached!";
-    document.getElementById('statusBadge').innerText = "💬 Leave honest feedback below to reveal artist profile & links.";
+    document.getElementById('timerText').innerText = "✅ 30s listening completed!";
+    document.getElementById('statusBadge').innerText = "💬 Submit feedback below to reveal artist profile & links.";
     const form = document.getElementById('feedbackForm');
     form.style.opacity = "1";
     form.style.pointerEvents = "auto";
@@ -365,13 +377,14 @@
     await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'unlock', id: drop.id, feedback: feedback })
+      body: JSON.stringify({ action: 'unlock', row: drop.row, feedback: feedback })
     });
 
     drop.unlocked = true;
     drop.feedback = feedback;
 
     document.getElementById('maskOverlay').classList.add('unlocked');
+    document.getElementById('playerWrapper').classList.add('unlocked');
     const badge = document.getElementById('statusBadge');
     badge.innerText = `🎉 Artist Revealed: ${drop.artist_name}!`;
     badge.classList.add('success');
@@ -381,6 +394,25 @@
 
     setupUnlockedButtons(drop);
     renderChartFeed();
+  }
+
+  async function deleteDrop(row) {
+    if (!confirm("Are you sure you want to delete this track?")) return;
+
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', row: row })
+    });
+
+    await fetchDrops();
+    resetToSubmit();
+  }
+
+  function deleteCurrentDrop() {
+    if (currentDropIndex !== null) {
+      deleteDrop(dropsList[currentDropIndex].row);
+    }
   }
 
   function setupUnlockedButtons(drop) {
@@ -399,6 +431,7 @@
   function resetToSubmit() {
     document.getElementById('playerCard').style.display = 'none';
     document.getElementById('submitCard').style.display = 'block';
+    fetchDrops();
   }
 
   function renderChartFeed() {
@@ -417,16 +450,20 @@
       const realIndex = dropsList.length - 1 - index;
       const item = document.createElement('div');
       item.className = 'feed-item';
-      item.onclick = () => loadDropIntoPlayer(realIndex);
 
       item.innerHTML = `
-        <div class="feed-number">#${drop.id}</div>
-        <div class="feed-info">
-          <div class="feed-title">${drop.unlocked ? '🔓 ' + drop.artist_name : '🔒 Mystery Artist'}</div>
-          <div class="feed-platform">${drop.platform}</div>
+        <div class="feed-click-area" onclick="loadDropIntoPlayer(${realIndex})">
+          <div class="feed-number">#${drop.id || (realIndex + 1)}</div>
+          <div class="feed-info">
+            <div class="feed-title">${drop.unlocked ? '🔓 ' + drop.artist_name : '🔒 Mystery Artist'}</div>
+            <div class="feed-platform">${drop.platform}</div>
+          </div>
         </div>
-        <div class="feed-status ${drop.unlocked ? 'unlocked' : ''}">
-          ${drop.unlocked ? 'Revealed' : 'Listen'}
+        <div class="feed-actions">
+          <div class="feed-status ${drop.unlocked ? 'unlocked' : ''}">
+            ${drop.unlocked ? '✓' : 'Listen'}
+          </div>
+          <button class="icon-del-btn" title="Delete Drop" onclick="event.stopPropagation(); deleteDrop(${drop.row})">🗑️</button>
         </div>
       `;
       feed.appendChild(item);
