@@ -39,7 +39,7 @@
     .player-wrapper { 
       position: relative; 
       width: 100%; 
-      height: 120px; 
+      height: 152px; 
       border-radius: 12px; 
       overflow: hidden; 
       background: #000; 
@@ -47,34 +47,7 @@
       border: 1px solid var(--border); 
     }
     
-    .mask-overlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: #18181f;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 20;
-      transition: opacity 0.4s ease;
-      padding: 16px;
-      text-align: center;
-      cursor: pointer;
-    }
-
-    .mask-overlay.unlocked { opacity: 0; pointer-events: none; display: none !important; }
-
-    .play-btn-circle {
-      width: 48px; height: 48px;
-      background: var(--accent);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 6px; font-size: 1.2rem;
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-    }
-
-    iframe { width: 100%; height: 100%; border: none; display: block; opacity: 0.01; }
-    .unlocked iframe { opacity: 1 !important; }
+    iframe { width: 100%; height: 100%; border: none; display: block; }
 
     .timer-box { margin: 12px 0; text-align: center; }
     .progress-bar { width: 100%; height: 6px; background: #27272a; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
@@ -141,22 +114,16 @@
     <span class="badge" id="activeTrackBadge">🔒 MYSTERY DROP</span>
     
     <div class="player-wrapper" id="playerWrapper">
-      <div class="mask-overlay" id="maskOverlay" onclick="startAudio()">
-        <div class="play-btn-circle">▶</div>
-        <div style="font-weight: bold; font-size: 0.95rem;">Tap to Start Audio</div>
-        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 2px;" id="platformDetect">Detecting platform...</div>
-      </div>
-
       <div id="mediaContainer" style="height: 100%;"></div>
     </div>
 
     <div class="timer-box">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="timer-text" id="timerText">Tap above to start listening...</div>
+      <div class="timer-text" id="timerText">Click Play on the player above & let the 30s timer run!</div>
     </div>
 
     <div class="status-badge" id="statusBadge">
-      ▶ Tap player to start audio & 30s timer.
+      ▶ Play the track and listen for 30 seconds to unlock feedback.
     </div>
 
     <div id="feedbackForm" style="opacity: 0.4; pointer-events: none; margin-top: 12px;">
@@ -196,6 +163,11 @@
   let timerInterval = null;
 
   window.onload = function() {
+    const cached = localStorage.getItem('chatsong_drops');
+    if (cached) {
+      dropsList = JSON.parse(cached);
+      renderChartFeed();
+    }
     fetchDrops();
   };
 
@@ -203,6 +175,7 @@
     try {
       const res = await fetch(GOOGLE_SCRIPT_URL);
       dropsList = await res.json();
+      localStorage.setItem('chatsong_drops', JSON.stringify(dropsList));
       renderChartFeed();
     } catch (err) {
       console.error("Error fetching drops:", err);
@@ -214,7 +187,7 @@
       const path = url.replace(/https?:\/\/(www\.)?mixcloud\.com/, '');
       return { 
         platform: 'Mixcloud', 
-        embedUrl: `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(path)}&hide_cover=1&light=1&autoplay=1`,
+        embedUrl: `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(path)}&hide_cover=1&light=1`,
         btnText: '☁️ Stream on Mixcloud'
       };
     }
@@ -231,7 +204,7 @@
     if (url.includes('soundcloud.com')) {
       return { 
         platform: 'SoundCloud', 
-        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=false`,
+        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`,
         btnText: '🟠 Stream on SoundCloud'
       };
     }
@@ -240,7 +213,7 @@
     if (ytMatch) {
       return { 
         platform: 'YouTube / Shorts', 
-        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&enablejsapi=1`,
+        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?enablejsapi=1`,
         btnText: '▶ Stream on YouTube'
       };
     }
@@ -289,24 +262,19 @@
     const drop = dropsList[index];
     listenedSeconds = 0;
     if (timerInterval) clearInterval(timerInterval);
-    timerInterval = null;
+    
+    // Start automatisch de 30-seconden timer zodra de speler laadt
+    startTimer();
 
     const container = document.getElementById('mediaContainer');
-    const mask = document.getElementById('maskOverlay');
-    
-    // Laad GEEN iframe in tot de gebruiker op de knop drukt (maakt het super snel)
-    container.innerHTML = `<iframe id="mediaIframe" src="" allow="autoplay; encrypted-media"></iframe>`;
+    container.innerHTML = `<iframe src="${drop.embed_url}" allow="encrypted-media"></iframe>`;
 
-    document.getElementById('activeTrackBadge').innerText = `🔒 MYSTERY DROP`;
-    document.getElementById('platformDetect').innerText = `Platform: ${drop.platform}`;
-
-    mask.classList.remove('unlocked');
-    document.getElementById('playerWrapper').classList.remove('unlocked');
+    document.getElementById('activeTrackBadge').innerText = drop.unlocked ? `🔓 ${drop.artist_name}` : `🔒 MYSTERY DROP`;
 
     document.getElementById('progressFill').style.width = '0%';
-    document.getElementById('timerText').innerText = 'Tap above to start listening...';
+    document.getElementById('timerText').innerText = 'Listen for 30 seconds...';
     document.getElementById('statusBadge').className = 'status-badge';
-    document.getElementById('statusBadge').innerText = '▶ Tap player to start audio & 30s timer.';
+    document.getElementById('statusBadge').innerText = '▶ Hit play on the player to start listening.';
     
     document.getElementById('feedbackForm').style.display = 'block';
     document.getElementById('feedbackForm').style.opacity = '0.4';
@@ -315,12 +283,11 @@
     document.getElementById('unlockedActions').style.display = 'none';
 
     if (drop.unlocked) {
-      mask.classList.add('unlocked');
-      document.getElementById('playerWrapper').classList.add('unlocked');
-      // Als hij al unlocked is laden we de speler direct wel afgespeeld
-      document.getElementById('mediaIframe').src = drop.embed_url;
+      if (timerInterval) clearInterval(timerInterval);
       document.getElementById('statusBadge').innerText = `🎉 Track Unlocked: ${drop.artist_name}`;
       document.getElementById('statusBadge').classList.add('success');
+      document.getElementById('timerText').innerText = `✅ Already unlocked!`;
+      document.getElementById('progressFill').style.width = '100%';
       document.getElementById('feedbackForm').style.display = 'none';
       document.getElementById('unlockedActions').style.display = 'flex';
       setupUnlockedButtons(drop);
@@ -330,20 +297,8 @@
     document.getElementById('playerCard').style.display = 'block';
   }
 
-  function startAudio() {
-    if (!timerInterval && currentDropIndex !== null && !dropsList[currentDropIndex].unlocked) {
-      const drop = dropsList[currentDropIndex];
-      const iframe = document.getElementById('mediaIframe');
-      if (iframe) {
-        // Laad de embed URL pas in wanneer de gebruiker op de overlay tikt!
-        iframe.src = drop.embed_url;
-      }
-      startTimer();
-    }
-  }
-
   function startTimer() {
-    document.getElementById('timerText').innerText = "Streaming... 30 seconds remaining";
+    if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
       if (listenedSeconds < requiredSeconds) {
         listenedSeconds++;
@@ -383,9 +338,9 @@
 
     drop.unlocked = true;
     drop.feedback = feedback;
+    localStorage.setItem('chatsong_drops', JSON.stringify(dropsList));
 
-    document.getElementById('maskOverlay').classList.add('unlocked');
-    document.getElementById('playerWrapper').classList.add('unlocked');
+    document.getElementById('activeTrackBadge').innerText = `🔓 ${drop.artist_name}`;
     const badge = document.getElementById('statusBadge');
     badge.innerText = `🎉 Artist Revealed: ${drop.artist_name}!`;
     badge.classList.add('success');
