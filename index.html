@@ -183,7 +183,7 @@
   const totalWaitSeconds = 3;
 
   // JOUW JUISTE URL HIER INGEVULD:
-  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxdfbtEwlGQEuPViUcIT9b5J729zyh8ZE8dfU26ays7E6yuA5V0xomoTWeK7cJ1RdBW/exec';
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyfn_WfP1lMPkwhlvvmD_xSeSzyiQzWGOASwH4GwkmCQ-9CsstEoz7Ojnm-sBGO3Cpx/exec';
 
   window.onload = function() {
     fetchLiveFeed();
@@ -301,32 +301,36 @@
       }
     }, 1000);
   }
-
-  function unlockTrack() {
+function unlockTrack() {
     const feedback = document.getElementById('feedbackText').value.trim();
     if (feedback.length < 10) {
       alert("Please write at least 10 characters explaining why you submitted this track.");
       return;
     }
 
-    // Verstuur naar Google Sheet
+    // Exact afgestemd op wat jouw doPost() script verwacht!
+    const payload = {
+      action: 'add',
+      artist_name: currentRoleText,
+      raw_link: rawLink,
+      profile_link: rawLink,
+      platform: currentPlatform,
+      embed_url: currentEmbedUrl,
+      btn_text: 'Stream on ' + currentPlatform,
+      feedback: feedback // Nu wordt de feedback direct meegestuurd naar kolom 9!
+    };
+
+    // Verstuur naar Google Sheet met no-cors
     fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'add',
-        artist_name: currentRoleText,
-        raw_link: rawLink,
-        profile_link: rawLink,
-        platform: currentPlatform,
-        embed_url: currentEmbedUrl,
-        btn_text: 'Stream on ' + currentPlatform
-      })
+      body: JSON.stringify(payload)
     }).then(() => {
+      // Wacht 2 seconden zodat Google Sheet de rij heeft weggeschreven en haal dan de lijst op
       setTimeout(() => {
         fetchLiveFeed();
-      }, 1500);
+      }, 2000);
     }).catch(err => console.log("Sheet add note:", err));
 
     document.getElementById('maskOverlay').classList.add('unlocked');
