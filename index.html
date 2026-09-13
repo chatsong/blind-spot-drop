@@ -39,7 +39,7 @@
     .player-wrapper { 
       position: relative; 
       width: 100%; 
-      height: 152px; 
+      height: 160px; 
       border-radius: 12px; 
       overflow: hidden; 
       background: #000; 
@@ -89,16 +89,16 @@
   <div class="card" id="submitCard">
     <span class="badge">👁️ UNIVERSAL BLIND DROP</span>
     <h2>Submit Track or Short</h2>
-    <p class="sub">Paste YouTube (Shorts), Spotify, SoundCloud, Mixcloud or any mobile link!</p>
+    <p class="sub">Paste complete mobile share text or standard link (SoundCloud, Spotify, YouTube, Bandcamp, Mixcloud)!</p>
 
     <div class="form-group">
-      <label>Platform / Mobile Share Link</label>
-      <input type="url" id="trackUrl" placeholder="Paste Mixcloud, Shorts, Spotify, SoundCloud URL...">
+      <label>Paste Share Text / Link here</label>
+      <textarea id="trackUrl" rows="3" placeholder="e.g. Luister naar Pulse After Panic van @ChatsongMusic op #SoundCloud https://on.soundcloud.com/..."></textarea>
     </div>
 
     <div class="form-group">
       <label>Artist Name (Hidden until unlocked)</label>
-      <input type="text" id="artistName" placeholder="e.g. DJ Aquana / Artist Handle">
+      <input type="text" id="artistName" placeholder="e.g. Chatsong / Artist Handle">
     </div>
 
     <div class="form-group">
@@ -154,7 +154,7 @@
 
 <script>
   // VERVANG DIT MET JOUW GOOGLE APPS SCRIPT WEB-APP URL
-  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyRGqbq1IZQKpGixAGAE18SvBoZl7uhdm2vJG1STjOAEr_eFaU2zXOlrD1uwE8vDu2_/exec';
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzSG0_V-I1JKMFUD2EXIJp-yDd4PLNJfv56wYLxvoPZbvG1hAUOPyI0KTcER5Jd0qK2/exec';
 
   let dropsList = [];
   let currentDropIndex = null;
@@ -182,65 +182,87 @@
     }
   }
 
-  function parseMediaUrl(url) {
-    if (url.includes('mixcloud.com')) {
-      const path = url.replace(/https?:\/\/(www\.)?mixcloud\.com/, '');
-      return { 
-        platform: 'Mixcloud', 
-        embedUrl: `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(path)}&hide_cover=1&light=1`,
-        btnText: '☁️ Stream on Mixcloud'
-      };
-    }
+  function parseMediaUrl(inputString) {
+    // 1. Haal automatisch de URL (http/https) uit eventuele gekopieerde social media tekst
+    const urlMatch = inputString.match(/(https?:\/\/[^\s]+)/g);
+    const cleanUrl = urlMatch ? urlMatch[0] : inputString.trim();
 
-    const spotifyMatch = url.match(/(?:open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:track|episode)\/|spotify:track:)([a-zA-Z0-9]+)/);
-    if (spotifyMatch) {
-      return { 
-        platform: 'Spotify', 
-        embedUrl: `https://open.spotify.com/embed/track/${spotifyMatch[1]}?utm_source=generator`,
-        btnText: '💚 Stream on Spotify'
-      };
-    }
-
-    if (url.includes('soundcloud.com')) {
+    // 2. SOUNDCLOUD (Herkent zowel soundcloud.com als de mobiele on.soundcloud.com shortlinks)
+    if (cleanUrl.includes('soundcloud.com') || cleanUrl.includes('on.soundcloud.com')) {
       return { 
         platform: 'SoundCloud', 
-        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`,
+        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(cleanUrl)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`,
+        rawUrl: cleanUrl,
         btnText: '🟠 Stream on SoundCloud'
       };
     }
 
-    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?.*v=|shorts\/))([\w-]{11})/);
+    // 3. SPOTIFY
+    const spotifyMatch = cleanUrl.match(/(?:open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:track|episode)\/|spotify:track:)([a-zA-Z0-9]+)/);
+    if (spotifyMatch) {
+      return { 
+        platform: 'Spotify', 
+        embedUrl: `https://open.spotify.com/embed/track/${spotifyMatch[1]}?utm_source=generator`,
+        rawUrl: cleanUrl,
+        btnText: '💚 Stream on Spotify'
+      };
+    }
+
+    // 4. BANDCAMP
+    if (cleanUrl.includes('bandcamp.com')) {
+      return { 
+        platform: 'Bandcamp', 
+        embedUrl: cleanUrl, // Bandcamp link direct doorsturen of via hun embed structuur
+        rawUrl: cleanUrl,
+        btnText: '🎵 Stream on Bandcamp'
+      };
+    }
+
+    // 5. MIXCLOUD
+    if (cleanUrl.includes('mixcloud.com')) {
+      const path = cleanUrl.replace(/https?:\/\/(www\.)?mixcloud\.com/, '');
+      return { 
+        platform: 'Mixcloud', 
+        embedUrl: `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(path)}&hide_cover=1&light=1`,
+        rawUrl: cleanUrl,
+        btnText: '☁️ Stream on Mixcloud'
+      };
+    }
+
+    // 6. YOUTUBE / SHORTS
+    const ytMatch = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?.*v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
       return { 
         platform: 'YouTube / Shorts', 
         embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?enablejsapi=1`,
+        rawUrl: cleanUrl,
         btnText: '▶ Stream on YouTube'
       };
     }
 
-    return { platform: 'External Audio / Video', embedUrl: url, btnText: '🎧 Open Platform Link' };
+    return { platform: 'External Link', embedUrl: cleanUrl, rawUrl: cleanUrl, btnText: '🎧 Open Platform Link' };
   }
 
   async function createDrop() {
-    const urlInput = document.getElementById('trackUrl').value.trim();
+    const rawInput = document.getElementById('trackUrl').value.trim();
     const artistName = document.getElementById('artistName').value.trim() || 'Unknown Artist';
     const profileLink = document.getElementById('artistProfileUrl').value.trim();
 
-    if (!urlInput) {
-      alert("Please paste a valid track link.");
+    if (!rawInput) {
+      alert("Please paste a track link or share text.");
       return;
     }
 
-    const platformData = parseMediaUrl(urlInput);
+    const mediaData = parseMediaUrl(rawInput);
 
     const payload = {
       action: 'add',
       artist_name: artistName,
-      raw_link: urlInput,
+      raw_link: mediaData.rawUrl,
       profile_link: profileLink,
-      platform: platformData.platform,
-      embed_url: platformData.embedUrl,
-      btn_text: platformData.btnText
+      platform: mediaData.platform,
+      embed_url: mediaData.embedUrl,
+      btn_text: mediaData.btnText
     };
 
     await fetch(GOOGLE_SCRIPT_URL, {
@@ -263,11 +285,16 @@
     listenedSeconds = 0;
     if (timerInterval) clearInterval(timerInterval);
     
-    // Start automatisch de 30-seconden timer zodra de speler laadt
     startTimer();
 
     const container = document.getElementById('mediaContainer');
-    container.innerHTML = `<iframe src="${drop.embed_url}" allow="encrypted-media"></iframe>`;
+    
+    // Specifieke afhandeling als het Bandcamp is of een standaard iframe
+    if (drop.platform === 'Bandcamp') {
+      container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:20px;text-align:center;"><a href="${drop.raw_link}" target="_blank" class="action-btn platform-btn" style="text-decoration:none;">🎵 Open Bandcamp Track</a></div>`;
+    } else {
+      container.innerHTML = `<iframe src="${drop.embed_url}" allow="encrypted-media"></iframe>`;
+    }
 
     document.getElementById('activeTrackBadge').innerText = drop.unlocked ? `🔓 ${drop.artist_name}` : `🔒 MYSTERY DROP`;
 
