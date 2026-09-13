@@ -26,7 +26,7 @@
     .badge-gold { background: rgba(245, 158, 11, 0.2); color: var(--gold); }
     
     h2 { font-size: 1.2rem; margin-bottom: 6px; }
-    p.sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; }
+    p.sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; line-height: 1.4; }
 
     .form-group { margin-bottom: 12px; }
     label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
@@ -71,7 +71,7 @@
 
     .actions-box { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
     .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
-    .community-btn { background: var(--gold); color: #000; }
+    .blog-btn { background: var(--gold); color: #000; }
   </style>
 </head>
 <body>
@@ -82,11 +82,11 @@
   <div class="card" id="submitCard">
     <span class="badge badge-gold">💎 CHATSONG HIDDEN GEM DROP</span>
     <h2>Submit Track or Short</h2>
-    <p class="sub">Drop your track as Fan, Label, Radio or Artist and trigger the mystery reveal!</p>
+    <p class="sub">Drop your track (Spotify, SoundCloud, YouTube, Bandcamp) as Fan, Label, Radio or Artist!</p>
 
     <div class="form-group">
-      <label>Platform Link (YouTube Shorts, Spotify, SoundCloud, etc.)</label>
-      <input type="url" id="trackUrl" placeholder="Paste link here...">
+      <label>Platform Link / Mobile Share Link</label>
+      <input type="url" id="trackUrl" placeholder="Paste Spotify, SoundCloud, YouTube link...">
     </div>
 
     <div class="divider">— OR UPLOAD MP3 —</div>
@@ -108,30 +108,30 @@
     <button onclick="createDrop()">Launch Mystery Drop 🚀</button>
   </div>
 
-  <!-- STEP 2: BLIND PLAYER VIEW -->
+  <!-- STEP 2: PLAYER & AUTO-TIMER -->
   <div class="card" id="playerCard" style="display:none;">
     <span class="badge" id="roleBadge">🔒 MYSTERY DROP ACTIVE</span>
     
     <div class="player-wrapper" id="playerWrapper">
-      <!-- Donkere afdeklaag -->
+      <!-- Mask overlay -->
       <div class="mask-overlay" id="maskOverlay">
         <div style="font-size: 1.8rem; margin-bottom: 4px;">🎁</div>
-        <div style="font-weight: bold; font-size: 1.1rem;">Secret Hidden Gem</div>
-        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;" id="platformDetect">Detecting platform...</div>
+        <div style="font-weight: bold; font-size: 1.1rem;">Thanks for your song!</div>
+        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;" id="platformDetect">Preparing reveal...</div>
       </div>
 
       <!-- Speler container -->
       <div id="mediaContainer"></div>
     </div>
 
-    <!-- Timer -->
+    <!-- Automatische Timer -->
     <div class="timer-box">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="timer-text" id="timerText">Listen for 20 seconds to unlock the reveal...</div>
+      <div class="timer-text" id="timerText">Unlocking your track in 5 seconds...</div>
     </div>
 
     <div class="status-badge" id="statusBadge">
-      ▶ Play the track above to start the unlock timer.
+      ⏳ Processing your submission across platforms...
     </div>
 
     <!-- Feedback & Vibe Check -->
@@ -140,13 +140,14 @@
         <label style="color: var(--gold);">💬 Why did you submit or check this hidden gem?</label>
         <textarea id="feedbackText" rows="2" placeholder="Share your vibe or reason (Min. 10 characters)..."></textarea>
       </div>
-      <button onclick="unlockTrack()" id="unlockBtn" disabled>Submit & Reveal Track 🔓</button>
+      <button onclick="unlockTrack()" id="unlockBtn" disabled>Submit Feedback & Fully Reveal 🔓</button>
     </div>
 
-    <!-- Unlocked State & Community Call-to-Action -->
+    <!-- Unlocked State & Blog Link -->
     <div class="actions-box" id="unlockedActions">
       <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Original Track</a>
-      <a href="https://chatsong.nl" target="_blank" class="action-btn community-btn">🔥 Join Chatsong Community & Drop More Tracks! 🚀</a>
+      <!-- GitHub Blog Link waar de inzendingen staan -->
+      <a href="https://chatsong.github.io/blind-spot-drop/" target="_blank" class="action-btn blog-btn">📖 Open Chatsong Blog Article & View All Tracks 🚀</a>
     </div>
   </div>
 
@@ -154,9 +155,8 @@
 
 <script>
   let rawLink = '';
-  let listenedSeconds = 0;
-  const requiredSeconds = 20; // Sneller gemaakt voor mobiel / jeugd
-  let timerInterval = null;
+  let countdownTimer = null;
+  const totalWaitSeconds = 5; // Tijd voordat de reveal optie actief wordt
 
   function createDrop() {
     const urlInput = document.getElementById('trackUrl').value.trim();
@@ -184,81 +184,65 @@
     if (fileInput.files.length > 0) {
       platformDetect.innerText = "Source: Uploaded Audio File";
       const audioUrl = URL.createObjectURL(fileInput.files[0]);
-      container.innerHTML = `<audio id="blindAudio" controls src="${audioUrl}"></audio>`;
-      setupAudioListener(document.getElementById('blindAudio'));
+      container.innerHTML = `<audio controls src="${audioUrl}"></audio>`;
     } else {
       const parsed = parseMediaUrl(urlInput);
       platformDetect.innerText = `Platform: ${parsed.platform}`;
-      
-      if (parsed.type === 'iframe') {
-        container.innerHTML = `<iframe src="${parsed.embedUrl}" allow="autoplay; encrypted-media"></iframe>`;
-        startTimer(); 
-      } else {
-        container.innerHTML = `<audio id="blindAudio" controls src="${urlInput}"></audio>`;
-        setupAudioListener(document.getElementById('blindAudio'));
-      }
+      container.innerHTML = `<iframe src="${parsed.embedUrl}" allow="autoplay; encrypted-media"></iframe>`;
     }
 
     document.getElementById('submitCard').style.display = 'none';
     document.getElementById('playerCard').style.display = 'block';
+
+    // Start automatische timer direct bij openen
+    startAutoTimer();
   }
 
   function parseMediaUrl(url) {
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
-      return { 
-        type: 'iframe', 
-        platform: 'YouTube / Shorts', 
-        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1` 
-      };
+      return { platform: 'YouTube / Shorts', embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1` };
     }
 
-    const spotifyMatch = url.match(/open\.spotify\.com\/(track|episode|album)\/([a-zA-Z0-9]+)/);
+    const spotifyMatch = url.match(/open\.spotify\.com\/(track|episode|album|playlist)\/([a-zA-Z0-9]+)/);
     if (spotifyMatch) {
-      return { 
-        type: 'iframe', 
-        platform: 'Spotify', 
-        embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator` 
-      };
+      return { platform: 'Spotify', embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator` };
     }
 
     if (url.includes('soundcloud.com')) {
-      return { 
-        type: 'iframe', 
-        platform: 'SoundCloud', 
-        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=false` 
-      };
+      return { platform: 'SoundCloud', embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=false` };
     }
 
-    return { type: 'audio', platform: 'Direct Link / Audio Stream', embedUrl: url };
+    if (url.includes('bandcamp.com')) {
+      return { platform: 'Bandcamp', embedUrl: `https://bandcamp.com/EmbeddedPlayer/v=2/track=${encodeURIComponent(url)}/size=small/bgcol=18181f/linkcol=8b5cf6/transparent=true/` };
+    }
+
+    return { platform: 'Direct Link / Stream', embedUrl: url };
   }
 
-  function setupAudioListener(audioEl) {
-    audioEl.addEventListener('play', () => startTimer());
-    audioEl.addEventListener('pause', () => clearInterval(timerInterval));
-  }
-
-  function startTimer() {
-    if (timerInterval) clearInterval(timerInterval);
+  function startAutoTimer() {
+    let secondsLeft = totalWaitSeconds;
     
-    timerInterval = setInterval(() => {
-      if (listenedSeconds < requiredSeconds) {
-        listenedSeconds++;
-        const percent = (listenedSeconds / requiredSeconds) * 100;
-        document.getElementById('progressFill').style.width = percent + '%';
-        
-        const remaining = requiredSeconds - listenedSeconds;
-        document.getElementById('timerText').innerText = `Listen for ${remaining} more seconds...`;
+    if (countdownTimer) clearInterval(countdownTimer);
+
+    countdownTimer = setInterval(() => {
+      secondsLeft--;
+      const elapsed = totalWaitSeconds - secondsLeft;
+      const percent = (elapsed / totalWaitSeconds) * 100;
+      document.getElementById('progressFill').style.width = percent + '%';
+
+      if (secondsLeft > 0) {
+        document.getElementById('timerText').innerText = `Thanks for your song! Unlocking in ${secondsLeft} seconds...`;
       } else {
-        clearInterval(timerInterval);
+        clearInterval(countdownTimer);
         enableUnlock();
       }
     }, 1000);
   }
 
   function enableUnlock() {
-    document.getElementById('timerText').innerText = "✅ Listening complete!";
-    document.getElementById('statusBadge').innerText = "💬 Submit your vibe/reason below to fully reveal the track & join the community!";
+    document.getElementById('timerText').innerText = "✅ Ready to reveal!";
+    document.getElementById('statusBadge').innerText = "💬 Submit your vibe/reason below to fully unlock and access the blog article!";
     
     const form = document.getElementById('feedbackForm');
     form.style.opacity = "1";
@@ -273,14 +257,14 @@
       return;
     }
 
-    // Verberg de mask overlay zodat de track zichtbaar wordt
+    // Verberg de mask overlay zodat de speler volledig zichtbaar wordt
     document.getElementById('maskOverlay').classList.add('unlocked');
 
     const badge = document.getElementById('statusBadge');
-    badge.innerText = "🎉 Track Fully Revealed! Join Chatsong below.";
+    badge.innerText = "🎉 Track Fully Unlocked! Check out the blog article below.";
     badge.classList.add('success');
 
-    // Toon original link en de community call-to-action button
+    // Toon original link en de GitHub blog link knop
     document.getElementById('unlockedActions').style.display = 'flex';
     if (rawLink) {
       document.getElementById('originalLinkBtn').href = rawLink;
