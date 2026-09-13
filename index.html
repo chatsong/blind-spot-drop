@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chatsong - Universal Blind Drop</title>
   
-  <!-- SoundCloud Widget API voor externe bediening -->
+  <!-- SoundCloud Widget API -->
   <script src="https://w.soundcloud.com/player/api.js"></script>
 
   <style>
@@ -41,7 +41,7 @@
     button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
     button:hover { background: var(--accent-hover); }
 
-    /* Player Container & Blind Masking */
+    /* Player Container & Masking */
     .player-wrapper { position: relative; width: 100%; height: 200px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
     
     .mask-overlay {
@@ -89,6 +89,7 @@
     .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; border: 1px dashed var(--border); }
     .status-badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success); }
 
+    /* Promo Box voor Chatsong Home */
     .member-promo-box {
       display: none;
       background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.15));
@@ -121,6 +122,7 @@
     .actions-box { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
     .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
     .chatsong-btn { background: var(--chatsong); }
+    .platform-btn { background: #16a34a; }
     .share-btn { background: var(--accent); }
   </style>
 </head>
@@ -190,24 +192,26 @@
       <button onclick="unlockTrack()" id="unlockBtn" disabled>Submit Feedback & Unlock Artist 🔓</button>
     </div>
 
+    <!-- Unlocked Actions & Platform Links -->
     <div class="actions-box" id="unlockedActions">
+      <a href="#" target="_blank" class="action-btn platform-btn" id="originalLinkBtn">⭐ Open, Follow & Save on Platform</a>
       <a href="#" target="_blank" class="action-btn chatsong-btn" id="artistProfileBtn" style="display:none;">👤 View Artist Profile & Socials</a>
-      <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Original Track</a>
       <button class="action-btn share-btn" onclick="shareDrop()">📲 Share Blind Drop</button>
     </div>
 
+    <!-- Promo Box naar Chatsong Homepage -->
     <div class="member-promo-box" id="memberPromo">
-      <div class="promo-badge">⚡ DOUBLE YOUR CHANCES AS A MEMBER</div>
-      <h3>Want to get your music discovered?</h3>
+      <div class="promo-badge">⚡ CHATSONG MUSIC COMMUNITY</div>
+      <h3>Discover more hidden gems & share your music</h3>
       
       <ul class="benefit-list">
-        <li>✨ Submit your songs to <strong>Submit Hidden Gem</strong></li>
-        <li>📊 Compete on the <strong>Interactive Chart</strong></li>
-        <li>💬 Connect in <strong>Chatrooms & Topics</strong></li>
+        <li>✨ Submit your songs to <strong>Hidden Gem Chart</strong></li>
+        <li>📊 Vote & rank on <strong>Interactive Charts</strong></li>
+        <li>💬 Connect with artists in <strong>Chatrooms</strong></li>
       </ul>
 
-      <a href="https://chatsong.nl/register" target="_top" class="btn-promo-signup">
-        Sign Up & Post Your Songs 🚀
+      <a href="https://chatsong.nl/" target="_blank" class="btn-promo-signup">
+        Go to Chatsong Home 🚀
       </a>
     </div>
 
@@ -241,7 +245,7 @@
 
     if (fileInput.files.length > 0) {
       platformDetect.innerText = "Source: Uploaded MP3 Audio";
-      detectedPlatform = { type: 'audio', platform: 'MP3 Audio' };
+      detectedPlatform = { type: 'audio', platform: 'MP3 Audio', btnText: '💾 Download / Save MP3' };
       const audioUrl = URL.createObjectURL(fileInput.files[0]);
       container.innerHTML = `<audio id="blindAudio" controls src="${audioUrl}"></audio>`;
     } else {
@@ -266,7 +270,7 @@
         type: 'iframe', 
         platform: 'SoundCloud', 
         embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=false`,
-        btnText: '☁️ Save & Follow on SoundCloud'
+        btnText: '☁️ Open, Follow & Favorite on SoundCloud'
       };
     }
 
@@ -277,7 +281,7 @@
         type: 'iframe', 
         platform: 'YouTube / Shorts', 
         embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?enablejsapi=1&autoplay=1`,
-        btnText: '🔔 Subscribe & Save on YouTube'
+        btnText: '🔔 Open & Subscribe on YouTube'
       };
     }
 
@@ -288,11 +292,21 @@
         type: 'iframe', 
         platform: 'Spotify', 
         embedUrl: `https://open.spotify.com/embed/track/${spotifyMatch[1]}?utm_source=generator`,
-        btnText: '💚 Save Track on Spotify'
+        btnText: '💚 Open & Save Track on Spotify'
       };
     }
 
-    return { type: 'audio', platform: 'Direct Audio Stream', embedUrl: url, btnText: '🔗 Open Stream' };
+    // 4. TikTok
+    if (url.includes('tiktok.com')) {
+      return { 
+        type: 'iframe', 
+        platform: 'TikTok', 
+        embedUrl: url,
+        btnText: '📱 Open & Follow on TikTok'
+      };
+    }
+
+    return { type: 'audio', platform: 'Direct Audio Stream', embedUrl: url, btnText: '🎧 Open & Save Track' };
   }
 
   function triggerAudioPlayback() {
@@ -300,18 +314,15 @@
     const audioEl = document.getElementById('blindAudio');
     const iframeEl = document.getElementById('mediaIframe');
 
-    // 1. MP3 Audio direct
     if (audioEl) {
       audioEl.play().catch(e => console.log(e));
     }
 
-    // 2. SoundCloud API Playback
     if (detectedPlatform && detectedPlatform.platform === 'SoundCloud' && iframeEl && window.SC) {
       scWidget = SC.Widget(iframeEl);
       scWidget.play();
     }
 
-    // 3. YouTube API Playback
     if (detectedPlatform && detectedPlatform.platform.includes('YouTube') && iframeEl) {
       iframeEl.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
     }
