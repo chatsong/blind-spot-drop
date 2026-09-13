@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,7 +40,7 @@
     button:hover { background: var(--accent-hover); }
 
     /* Player Container & Blind Masking */
-    .player-wrapper { position: relative; width: 100%; min-height: 120px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
+    .player-wrapper { position: relative; width: 100%; min-height: 166px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
     
     .mask-overlay {
       position: absolute;
@@ -57,7 +58,7 @@
 
     .mask-overlay.unlocked { opacity: 0; pointer-events: none; }
 
-    iframe { width: 100%; height: 120px; border: none; display: block; }
+    iframe { width: 100%; height: 166px; border: none; display: block; }
     audio { width: 100%; margin-top: 10px; }
 
     /* Progress & Timer */
@@ -87,7 +88,7 @@
 
     <div class="form-group">
       <label>Platform Link / Mobile Share Link (Spotify, YouTube, SoundCloud, Bandcamp)</label>
-      <input type="url" id="trackUrl" placeholder="Paste your Spotify, YouTube, SoundCloud or Bandcamp link...">
+      <input type="url" id="trackUrl" placeholder="Paste link (SoundCloud, Spotify, YouTube, Bandcamp)...">
     </div>
 
     <div class="divider">— OR UPLOAD MP3 —</div>
@@ -182,7 +183,7 @@
       
       if (parsed.type === 'iframe') {
         container.innerHTML = `<iframe src="${parsed.embedUrl}" allow="encrypted-media; autoplay; clipboard-write; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
-        startTimer(); // Start timer automatically for streaming embeds
+        startTimer(); // Start de timer automatisch voor alle streams
       } else {
         container.innerHTML = `<audio id="blindAudio" controls src="${urlInput}"></audio>`;
         setupAudioListener(document.getElementById('blindAudio'));
@@ -193,7 +194,7 @@
     document.getElementById('playerCard').style.display = 'block';
   }
 
-  // Universal URL Parser including Bandcamp, Spotify, YouTube & SoundCloud
+  // Verbeterde Parser inclusief correcte SoundCloud Widget URL omzetting
   function parseMediaUrl(url) {
     // YouTube & Shorts
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
@@ -215,31 +216,26 @@
       };
     }
 
-    // SoundCloud
+    // SoundCloud (Fix: omzetten naar officiële w.soundcloud.com/player endpoint met encodeURIComponent)
     if (url.includes('soundcloud.com')) {
+      const encodedUrl = encodeURIComponent(url);
       return { 
         type: 'iframe', 
         platform: 'SoundCloud', 
-        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=false` 
+        embedUrl: `https://w.soundcloud.com/player/?url=${encodedUrl}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false` 
       };
     }
 
-    // Bandcamp (supports standard track/album share links)
+    // Bandcamp
     if (url.includes('bandcamp.com')) {
       return {
         type: 'iframe',
         platform: 'Bandcamp',
-        embedUrl: `https://bandcamp.com/EmbeddedPlayer/v=2/track=${extractBandcampId(url)}/size=small/bgcol=18181f/linkcol=8b5cf6/transparent=true/`
+        embedUrl: `https://bandcamp.com/EmbeddedPlayer/v=2/track=${encodeURIComponent(url)}/size=small/bgcol=18181f/linkcol=8b5cf6/transparent=true/`
       };
     }
 
     return { type: 'audio', platform: 'Direct Audio Stream', embedUrl: url };
-  }
-
-  // Helper to extract or fallback for Bandcamp embedded links if direct URL is used
-  function extractBandcampId(url) {
-    // Bandcamp embeds usually work nicely if wrapped or parsed, fallback to generic parsing or parameter wrapper
-    return encodeURIComponent(url);
   }
 
   function setupAudioListener(audioEl) {
