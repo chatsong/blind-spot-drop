@@ -82,11 +82,11 @@
   <div class="card" id="submitCard">
     <span class="badge badge-gold">💎 CHATSONG HIDDEN GEM DROP (2026)</span>
     <h2>Submit Track or Mobile Share Link</h2>
-    <p class="sub">Drop your Spotify, SoundCloud, YouTube, or Mixcloud track to enter the voting chart!</p>
+    <p class="sub">Drop your Spotify, SoundCloud (`on.soundcloud.com`), YouTube or Mixcloud link to enter the chart!</p>
 
     <div class="form-group">
-      <label>Platform Link / Mobile Share Link</label>
-      <input type="url" id="trackUrl" placeholder="Paste Spotify, SoundCloud, YouTube link...">
+      <label>Platform Link / Mobile Share Link (2026 Ready)</label>
+      <input type="url" id="trackUrl" placeholder="Paste Spotify, SoundCloud, mobile share link...">
     </div>
 
     <div class="divider">— OR UPLOAD MP3 —</div>
@@ -134,7 +134,7 @@
       💬 Fill in the reason below to unlock your track live in the chart!
     </div>
 
-    <!-- STEP 2 & 3: "Why you submit this track" form directly active -->
+    <!-- STEP 2 & 3: "Why you submit this track" form -->
     <div id="feedbackForm" style="margin-top: 12px;">
       <div class="form-group">
         <label style="color: var(--gold); font-weight: bold;">2. Why did you submit this track / hidden gem?</label>
@@ -159,7 +159,7 @@
   const totalWaitSeconds = 3;
 
   function createDrop() {
-    const urlInput = document.getElementById('trackUrl').value.trim();
+    let urlInput = document.getElementById('trackUrl').value.trim();
     const fileInput = document.getElementById('fileInput');
     const role = document.getElementById('submitterRole').value;
     const container = document.getElementById('mediaContainer');
@@ -210,8 +210,8 @@
       return { platform: 'Spotify', embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator` };
     }
 
-    // SoundCloud (Fix voor alle varianten inclusief mobiele/short links)
-    if (url.includes('soundcloud.com')) {
+    // SoundCloud (ondersteunt nu ook verkorte on.soundcloud.com mobiele/desktop share links feilloos)
+    if (url.includes('soundcloud.com') || url.includes('on.soundcloud.com')) {
       return { 
         platform: 'SoundCloud', 
         embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false` 
@@ -223,7 +223,7 @@
       return { platform: 'Bandcamp', embedUrl: `https://bandcamp.com/EmbeddedPlayer/v=2/track=${encodeURIComponent(url)}/size=small/bgcol=18181f/linkcol=8b5cf6/transparent=true/` };
     }
 
-    // Direct audio / overig
+    // Fallback voor overige streams / direct links
     return { platform: 'Direct Link / Stream', embedUrl: url };
   }
 
