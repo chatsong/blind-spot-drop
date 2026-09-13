@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -98,10 +97,10 @@
   <div class="card" id="submitCard">
     <span class="badge badge-gold">💎 CHATSONG HIDDEN GEM DROP (2026)</span>
     <h2>Submit Track or Mobile Share Link</h2>
-    <p class="sub">Drop your Spotify, SoundCloud (`on.soundcloud.com`), YouTube or Mixcloud link to enter the chart!</p>
+    <p class="sub">Drop your Spotify, SoundCloud, YouTube or Mixcloud link to enter the chart!</p>
 
     <div class="form-group">
-      <label>Platform Link / Mobile Share Link (2026 Ready)</label>
+      <label>Platform Link / Mobile Share Link</label>
       <input type="url" id="trackUrl" placeholder="Paste Spotify, SoundCloud, mobile share link...">
     </div>
 
@@ -114,10 +113,10 @@
     <div class="form-group">
       <label>Who is submitting this track?</label>
       <select id="submitterRole">
-        <option value="artist">🔥 Artist (Own Track Release)</option>
-        <option value="label">⭐ Record Label Scout</option>
-        <option value="radio">📻 Radio Station / DJ Pick</option>
-        <option value="fan">🎧 Ultimate Fan Discovery</option>
+        <option value="🔥 Artist (Own Track Release)">🔥 Artist (Own Track Release)</option>
+        <option value="⭐ Record Label Scout">⭐ Record Label Scout</option>
+        <option value="📻 Radio Station / DJ Pick">📻 Radio Station / DJ Pick</option>
+        <option value="🎧 Ultimate Fan Discovery">🎧 Ultimate Fan Discovery</option>
       </select>
     </div>
 
@@ -129,18 +128,14 @@
     <span class="badge" id="roleBadge">🔒 MYSTERY DROP ACTIVE</span>
     
     <div class="player-wrapper" id="playerWrapper">
-      <!-- Mask overlay -->
       <div class="mask-overlay" id="maskOverlay">
         <div style="font-size: 1.8rem; margin-bottom: 4px;">🎵</div>
         <div style="font-weight: bold; font-size: 1.05rem; color: #fff;">Hidden Track Loading...</div>
         <div style="font-size: 0.78rem; color: var(--muted); margin-top: 6px;" id="platformDetect">Detecting platform...</div>
       </div>
-
-      <!-- Speler container -->
       <div id="mediaContainer"></div>
     </div>
 
-    <!-- Timer / Status -->
     <div class="timer-box">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
       <div class="timer-text" id="timerText">Preparing your track for the chart in 3 seconds...</div>
@@ -150,7 +145,6 @@
       💬 Fill in the reason below to unlock your track live in the chart!
     </div>
 
-    <!-- STEP 2 & 3: "Why you submit this track" form -->
     <div id="feedbackForm" style="margin-top: 12px;">
       <div class="form-group">
         <label style="color: var(--gold); font-weight: bold;">2. Why did you submit this track / hidden gem?</label>
@@ -159,7 +153,6 @@
       <button onclick="unlockTrack()" id="unlockBtn">3. Press Now to See the Track Live in the Chart 🔓</button>
     </div>
 
-    <!-- Unlocked State & Blog Chart Link -->
     <div class="actions-box" id="unlockedActions">
       <div style="background: rgba(245,158,11,0.15); border: 1px solid var(--gold); border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 6px;">
         <div style="font-weight: bold; color: var(--gold); font-size: 0.85rem;">🏆 VIP Chart Reward Unlocked!</div>
@@ -167,7 +160,6 @@
       </div>
       <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Original Track</a>
       <a href="https://chatsong.nl/blog/1642-mysterieus-hidden-gem-drop" target="_blank" class="action-btn blog-btn">🏆 Open Chatsong Blog Chart & View Live! 🚀</a>
-      <!-- Direct weer klaar om een nieuwe track in te dienen -->
       <button class="action-btn next-drop-btn" onclick="resetToSubmit()">➕ Brilliant drop! Want to submit another one? 🚀</button>
     </div>
   </div>
@@ -176,10 +168,10 @@
   <div class="submissions-list-card" id="submissionsCard">
     <div class="reward-banner">
       <div class="reward-title">🌟 LIVE CHART FEED (1, 2, 3...)</div>
-      <div class="reward-desc">Check out the latest submitted gems and share the blog post with friends!</div>
+      <div class="reward-desc">Check out the latest submitted gems from Google Sheets!</div>
     </div>
     <div id="submissionsList">
-      <!-- Wordt dynamisch gevuld -->
+      <!-- Wordt dynamisch geladen -->
     </div>
   </div>
 
@@ -188,6 +180,8 @@
 <script>
   let rawLink = '';
   let currentRoleText = '';
+  let currentEmbedUrl = '';
+  let currentRowId = null;
   let countdownTimer = null;
   const totalWaitSeconds = 3;
 
@@ -198,7 +192,7 @@
     renderSubmissions();
   };
 
-  function createDrop() {
+  async function createDrop() {
     let urlInput = document.getElementById('trackUrl').value.trim();
     const fileInput = document.getElementById('fileInput');
     const role = document.getElementById('submitterRole').value;
@@ -211,31 +205,50 @@
     }
 
     rawLink = urlInput || "Uploaded Audio File";
+    currentRoleText = role;
+    document.getElementById('roleBadge').innerText = currentRoleText;
     container.innerHTML = '';
 
-    const roleTitles = {
-      artist: "🔥 ARTIST CHART DROP",
-      label: "⭐ LABEL CHART RELEASE",
-      radio: "📻 RADIO CHART PREMIERE",
-      fan: "🎧 FAN HIDDEN GEM VOTE"
-    };
-    currentRoleText = roleTitles[role] || "🔒 MYSTERY DROP";
-    document.getElementById('roleBadge').innerText = currentRoleText;
-
+    let platform = "Direct Link";
     if (fileInput.files.length > 0) {
+      platform = "Audio Upload";
       platformDetect.innerText = "Source: Uploaded Audio File";
-      const audioUrl = URL.createObjectURL(fileInput.files[0]);
-      container.innerHTML = `<audio controls src="${audioUrl}"></audio>`;
+      currentEmbedUrl = URL.createObjectURL(fileInput.files[0]);
+      container.innerHTML = `<audio controls src="${currentEmbedUrl}"></audio>`;
     } else {
       const parsed = parseMediaUrl(urlInput);
-      platformDetect.innerText = `Platform: ${parsed.platform}`;
-      container.innerHTML = `<iframe src="${parsed.embedUrl}" allow="autoplay; encrypted-media"></iframe>`;
+      platform = parsed.platform;
+      currentEmbedUrl = parsed.embedUrl;
+      platformDetect.innerText = `Platform: ${platform}`;
+      container.innerHTML = `<iframe src="${currentEmbedUrl}" allow="autoplay; encrypted-media"></iframe>`;
+    }
+
+    // Direct opslaan via POST (actie 'add') in de Google Sheet om een rijnummer te krijgen
+    try {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add',
+          artist_name: currentRoleText,
+          raw_link: rawLink,
+          profile_link: rawLink,
+          platform: platform,
+          embed_url: currentEmbedUrl,
+          btn_text: "Open Track"
+        })
+      });
+      console.log("Added to sheet successfully");
+    } catch(err) {
+      console.log("Add error:", err);
     }
 
     document.getElementById('submitCard').style.display = 'none';
     document.getElementById('playerCard').style.display = 'block';
 
     startAutoTimer();
+    renderSubmissions();
   }
 
   function parseMediaUrl(url) {
@@ -256,11 +269,7 @@
       };
     }
 
-    if (url.includes('bandcamp.com')) {
-      return { platform: 'Bandcamp', embedUrl: `https://bandcamp.com/EmbeddedPlayer/v=2/track=${encodeURIComponent(url)}/size=small/bgcol=18181f/linkcol=8b5cf6/transparent=true/` };
-    }
-
-    return { platform: 'Direct Link / Stream', embedUrl: url };
+    return { platform: 'Web Stream', embedUrl: url };
   }
 
   function startAutoTimer() {
@@ -282,18 +291,37 @@
     }, 1000);
   }
 
-  function unlockTrack() {
+  async function unlockTrack() {
     const feedback = document.getElementById('feedbackText').value.trim();
     if (feedback.length < 10) {
       alert("Please write at least 10 characters explaining why you submitted this track.");
       return;
     }
 
-    // Sla op in de lijst
-    saveSubmission(rawLink, currentRoleText, feedback);
+    // We halen de data op om de laatst toegevoegde rij van deze sessie te vinden en te unlocken
+    try {
+      const res = await fetch(GOOGLE_SCRIPT_URL);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        // Pak de laatst toegevoegde rij (meestal de onderste of meest recente)
+        const lastItem = data[data.length - 1];
+        currentRowId = lastItem.row;
 
-    // Stuur door naar Google Apps Script
-    sendToGoogleScript(rawLink, currentRoleText, feedback);
+        // Stuur unlock actie naar Google Script
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'unlock',
+            row: currentRowId,
+            feedback: feedback
+          })
+        });
+      }
+    } catch(err) {
+      console.log("Unlock sync error:", err);
+    }
 
     document.getElementById('maskOverlay').classList.add('unlocked');
 
@@ -309,71 +337,60 @@
     }
 
     document.getElementById('feedbackForm').style.display = 'none';
+    
+    // Herlaad direct de lijst zodat de feedback erbij staat
     renderSubmissions();
 
-    // Scroll automatisch naar de lijst eronder zodat de gebruiker direct ziet dat hij erin staat!
     setTimeout(() => {
       document.getElementById('submissionsCard').scrollIntoView({ behavior: 'smooth' });
     }, 300);
   }
 
-  function saveSubmission(link, role, reason) {
-    let submissions = JSON.parse(localStorage.getItem('chatsong_drops') || '[]');
-    submissions.unshift({
-      link: link,
-      role: role,
-      reason: reason,
-      date: new Date().toLocaleDateString()
-    });
-    if (submissions.length > 20) submissions.pop();
-    localStorage.setItem('chatsong_drops', JSON.stringify(submissions));
-  }
-
-  function sendToGoogleScript(link, role, reason) {
-    if (!GOOGLE_SCRIPT_URL) return;
-    const data = { link: link, role: role, reason: reason, date: new Date().toISOString() };
-    fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }).catch(err => console.log('Google Script sync note:', err));
-  }
-
-  function renderSubmissions() {
+  async function renderSubmissions() {
     const listContainer = document.getElementById('submissionsList');
-    let submissions = JSON.parse(localStorage.getItem('chatsong_drops') || '[]');
+    listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 10px;">Loading live chart from Google Sheets...</div>`;
 
-    if (submissions.length === 0) {
-      listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 10px;">No tracks submitted yet. Be #1!</div>`;
-      return;
-    }
+    try {
+      const response = await fetch(GOOGLE_SCRIPT_URL);
+      let submissions = await response.json();
 
-    let html = '';
-    // Genummerde lijst 1, 2, 3, 4... netjes onder elkaar
-    submissions.forEach((sub, index) => {
-      let displayTitle = sub.link.length > 38 ? sub.link.substring(0, 35) + '...' : sub.link;
-      let positionNumber = index + 1; // 1, 2, 3, 4...
-      
-      html += `
-        <div class="sub-item">
-          <div class="sub-number">${positionNumber}</div>
-          <div class="sub-content">
-            <div class="sub-item-header">
-              <span>${sub.role}</span>
-              <span>${sub.date}</span>
+      if (!submissions || submissions.length === 0) {
+        listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 10px;">No tracks submitted yet. Be #1!</div>`;
+        return;
+      }
+
+      let html = '';
+      // We lopen door de rijen en nummeren ze netjes 1, 2, 3...
+      submissions.forEach((sub, index) => {
+        let linkText = sub.raw_link || '#';
+        let displayTitle = linkText.length > 38 ? linkText.substring(0, 35) + '...' : linkText;
+        let positionNumber = index + 1; // 1, 2, 3, 4...
+        let reasonText = sub.feedback ? `"${sub.feedback}"` : "<i>(Waiting for unlock feedback...)</i>";
+        let roleText = sub.artist_name || 'CHART DROP';
+
+        html += `
+          <div class="sub-item">
+            <div class="sub-number">${positionNumber}</div>
+            <div class="sub-content">
+              <div class="sub-item-header">
+                <span>${roleText}</span>
+                <span>Row #${sub.row}</span>
+              </div>
+              <a href="${linkText.startsWith('http') ? linkText : '#'}" target="_blank" class="sub-item-title">🎵 ${displayTitle}</a>
+              <div class="sub-item-reason">${reasonText}</div>
             </div>
-            <a href="${sub.link.startsWith('http') ? sub.link : '#'}" target="_blank" class="sub-item-title">🎵 ${displayTitle}</a>
-            <div class="sub-item-reason">"${sub.reason}"</div>
           </div>
-        </div>
-      `;
-    });
-    listContainer.innerHTML = html;
+        `;
+      });
+      listContainer.innerHTML = html;
+
+    } catch (error) {
+      console.error("Error loading live feed:", error);
+      listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 10px;">Could not load live chart feed. Try refreshing.</div>`;
+    }
   }
 
   function resetToSubmit() {
-    // Velden legen zodat ze direct opnieuw kunnen indienen
     document.getElementById('trackUrl').value = '';
     document.getElementById('fileInput').value = '';
     document.getElementById('feedbackText').value = '';
