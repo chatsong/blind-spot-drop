@@ -58,7 +58,7 @@
     .status-badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success); }
 
     .actions-box { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
-    .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
+    .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; display: block; }
     .chatsong-btn { background: var(--chatsong); }
     .platform-btn { background: #16a34a; }
     .share-btn { background: var(--accent); }
@@ -85,7 +85,7 @@
 
 <div class="app">
 
-  <!-- INZENDEN -->
+  <!-- SUBMISSION CARD -->
   <div class="card" id="submitCard">
     <span class="badge">👁️ UNIVERSAL BLIND DROP</span>
     <h2>Submit Track or Short</h2>
@@ -93,7 +93,7 @@
 
     <div class="form-group">
       <label>Paste Share Text / Link here</label>
-      <textarea id="trackUrl" rows="3" placeholder="e.g. Luister naar Pulse After Panic van @ChatsongMusic op #SoundCloud https://on.soundcloud.com/..."></textarea>
+      <textarea id="trackUrl" rows="3" placeholder="e.g. Listen to Pulse After Panic by @ChatsongMusic on #SoundCloud https://on.soundcloud.com/..."></textarea>
     </div>
 
     <div class="form-group">
@@ -104,7 +104,7 @@
     <button onclick="createDrop()">Add Track & Launch Blind Player 🚀</button>
   </div>
 
-  <!-- BLIND SPELER -->
+  <!-- BLIND PLAYER CARD -->
   <div class="card" id="playerCard" style="display:none;">
     <span class="badge" id="activeTrackBadge">🔒 MYSTERY DROP</span>
     
@@ -114,11 +114,11 @@
 
     <div class="timer-box">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="timer-text" id="timerText">Click Play on the player above & let the 30s timer run!</div>
+      <div class="timer-text" id="timerText">Click the listen button above & let the 30s timer run!</div>
     </div>
 
     <div class="status-badge" id="statusBadge">
-      ▶ Play the track and listen for 30 seconds to unlock feedback.
+      ▶ Open the track and listen for 30 seconds to unlock feedback.
     </div>
 
     <div id="feedbackForm" style="opacity: 0.4; pointer-events: none; margin-top: 12px;">
@@ -137,7 +137,7 @@
     </div>
   </div>
 
-  <!-- FEED / CHART -->
+  <!-- CHART / FEED CARD -->
   <div class="card" id="chartCard" style="display:none;">
     <span class="badge">📊 REVEALED ARTISTS CHART</span>
     <h2>Submitted Tracks & Revealed Artists</h2>
@@ -281,7 +281,7 @@
         listenedSeconds++;
         const percent = (listenedSeconds / requiredSeconds) * 100;
         document.getElementById('progressFill').style.width = percent + '%';
-        document.getElementById('timerText').innerText = `Listen for ${requiredSeconds - listenedSeconds} more seconds...`;
+        document.getElementById('timerText').innerText = `Listening... ${requiredSeconds - listenedSeconds}s remaining`;
       } else {
         clearInterval(timerInterval);
         enableUnlock();
@@ -297,18 +297,18 @@
 
     const container = document.getElementById('mediaContainer');
     
-    // Check of het een externe knop-link is (zoals Mobile Share of Bandcamp)
+    // Check if it's an external button link (like mobile shares or Bandcamp)
     if (!drop.embed_url || drop.platform.includes('Mobile') || drop.platform === 'Bandcamp') {
       container.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:15px; text-align:center; gap: 8px;">
-          <p style="color: #a1a1aa; font-size: 0.8rem; margin: 0;">Klik hier om te luisteren en de timer direct te starten:</p>
+          <p style="color: #a1a1aa; font-size: 0.8rem; margin: 0;">Click below to open track & start your 30s timer:</p>
           <a href="${drop.raw_link}" target="_blank" onclick="onExternalListenClick()" class="action-btn platform-btn" style="text-decoration:none; display:inline-block; padding: 10px 20px; font-size: 0.85rem;">
             ${drop.btn_text || '🎧 Open Track'}
           </a>
         </div>`;
     } else {
       container.innerHTML = `<iframe src="${drop.embed_url}" allow="encrypted-media"></iframe>`;
-      startTimer(); // Start timer direct bij reguliere iframes
+      startTimer(); // Start timer automatically for embedded iframe players
     }
 
     document.getElementById('activeTrackBadge').innerText = drop.unlocked ? `🔓 ${drop.artist_name}` : `🔒 MYSTERY DROP`;
@@ -339,11 +339,12 @@
     document.getElementById('playerCard').style.display = 'block';
   }
 
-  // Wordt automatisch aangeroepen zodra ze op de SoundCloud/Bandcamp knop drukken
+  // Triggered automatically when they click the external SoundCloud/Bandcamp button
   function onExternalListenClick() {
     if (listenedSeconds === 0 && !timerInterval) {
       startTimer();
-      document.getElementById('statusBadge').innerText = '🎵 Luisteren gedetecteerd! De timer loopt...';
+      document.getElementById('statusBadge').innerText = '🎵 Listening detected! Timer is running...';
+      document.getElementById('statusBadge').style.borderColor = 'var(--accent)';
     }
   }
 
