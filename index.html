@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,8 +19,8 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 12px; display: flex; justify-content: center; min-height: 100vh; }
-    .app { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; margin: auto 0; }
+    body { background: var(--bg); color: var(--text); padding: 16px 12px 40px 12px; display: flex; justify-content: center; min-height: 100vh; }
+    .app { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; }
     
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
     .badge { display: inline-block; background: rgba(139, 92, 246, 0.2); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; margin-bottom: 12px; }
@@ -75,7 +76,7 @@
     .next-drop-btn { background: var(--success); color: #fff; margin-top: 4px; }
 
     /* Genummerde lijst (1, 2, 3, 4...) onder elkaar */
-    .submissions-list-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-top: 16px; }
+    .submissions-list-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
     .reward-banner { background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(139,92,246,0.2)); border: 1px solid var(--gold); border-radius: 10px; padding: 12px; margin-bottom: 14px; text-align: center; }
     .reward-title { font-size: 0.85rem; font-weight: bold; color: var(--gold); margin-bottom: 2px; }
     .reward-desc { font-size: 0.75rem; color: var(--muted); }
@@ -309,6 +310,11 @@
 
     document.getElementById('feedbackForm').style.display = 'none';
     renderSubmissions();
+
+    // Scroll automatisch naar de lijst eronder zodat de gebruiker direct ziet dat hij erin staat!
+    setTimeout(() => {
+      document.getElementById('submissionsCard').scrollIntoView({ behavior: 'smooth' });
+    }, 300);
   }
 
   function saveSubmission(link, role, reason) {
