@@ -174,15 +174,15 @@
       console.error("Error fetching drops:", err);
     }
   }
-function parseMediaUrl(inputString) {
+
+  function parseMediaUrl(inputString) {
     const urlMatch = inputString.match(/(https?:\/\/[^\s]+)/g);
     const cleanUrl = urlMatch ? urlMatch[0] : inputString.trim();
 
-    // SOUNDCLOUD: Korte mobiele links (on.soundcloud.com) omzetten naar een directe actie-knop omdat iframes dit blokkeren
     if (cleanUrl.includes('on.soundcloud.com')) {
       return { 
-        platform: 'SoundCloud (Mobile Share)', 
-        embedUrl: '', // Geen iframe die breekt
+        platform: 'SoundCloud (Mobile)', 
+        embedUrl: '', 
         rawUrl: cleanUrl,
         btnText: '🟠 Listen on SoundCloud'
       };
@@ -255,7 +255,7 @@ function parseMediaUrl(inputString) {
       action: 'add',
       artist_name: artistName,
       raw_link: mediaData.rawUrl,
-      profile_link: mediaData.rawUrl, // Standaard doorsturen naar de tracklink bij unlock
+      profile_link: mediaData.rawUrl,
       platform: mediaData.platform,
       embed_url: mediaData.embedUrl,
       btn_text: mediaData.btnText
@@ -274,8 +274,6 @@ function parseMediaUrl(inputString) {
     document.getElementById('artistName').value = '';
   }
 
-
-
   function startTimer() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
@@ -290,35 +288,35 @@ function parseMediaUrl(inputString) {
       }
     }, 1000);
   }
-function loadDropIntoPlayer(index) {
+
+  function loadDropIntoPlayer(index) {
     currentDropIndex = index;
     const drop = dropsList[index];
     listenedSeconds = 0;
     if (timerInterval) clearInterval(timerInterval);
-    
-    startTimer();
 
     const container = document.getElementById('mediaContainer');
     
-    // HIER VANGEN WE DE KNOP-LINKS (Bandcamp, Mobile Share of lege embeds) OP:
-    if (!drop.embed_url || drop.platform === 'Bandcamp' || drop.platform.includes('Mobile Share')) {
+    // Check of het een externe knop-link is (zoals Mobile Share of Bandcamp)
+    if (!drop.embed_url || drop.platform.includes('Mobile') || drop.platform === 'Bandcamp') {
       container.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:20px; text-align:center; gap: 10px;">
-          <p style="color: #a1a1aa; font-size: 0.85rem; margin: 0;">Open de track om te luisteren:</p>
-          <a href="${drop.raw_link}" target="_blank" class="action-btn platform-btn" style="text-decoration:none; display:inline-block;">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:15px; text-align:center; gap: 8px;">
+          <p style="color: #a1a1aa; font-size: 0.8rem; margin: 0;">Klik hier om te luisteren en de timer direct te starten:</p>
+          <a href="${drop.raw_link}" target="_blank" onclick="onExternalListenClick()" class="action-btn platform-btn" style="text-decoration:none; display:inline-block; padding: 10px 20px; font-size: 0.85rem;">
             ${drop.btn_text || '🎧 Open Track'}
           </a>
         </div>`;
     } else {
       container.innerHTML = `<iframe src="${drop.embed_url}" allow="encrypted-media"></iframe>`;
+      startTimer(); // Start timer direct bij reguliere iframes
     }
 
     document.getElementById('activeTrackBadge').innerText = drop.unlocked ? `🔓 ${drop.artist_name}` : `🔒 MYSTERY DROP`;
 
     document.getElementById('progressFill').style.width = '0%';
-    document.getElementById('timerText').innerText = 'Listen for 30 seconds...';
+    document.getElementById('timerText').innerText = 'Open track or hit play to start 30s timer...';
     document.getElementById('statusBadge').className = 'status-badge';
-    document.getElementById('statusBadge').innerText = '▶ Hit play on the player to start listening.';
+    document.getElementById('statusBadge').innerText = '▶ Listen for 30 seconds to unlock feedback.';
     
     document.getElementById('feedbackForm').style.display = 'block';
     document.getElementById('feedbackForm').style.opacity = '0.4';
@@ -340,6 +338,15 @@ function loadDropIntoPlayer(index) {
     document.getElementById('submitCard').style.display = 'none';
     document.getElementById('playerCard').style.display = 'block';
   }
+
+  // Wordt automatisch aangeroepen zodra ze op de SoundCloud/Bandcamp knop drukken
+  function onExternalListenClick() {
+    if (listenedSeconds === 0 && !timerInterval) {
+      startTimer();
+      document.getElementById('statusBadge').innerText = '🎵 Luisteren gedetecteerd! De timer loopt...';
+    }
+  }
+
   function enableUnlock() {
     document.getElementById('timerText').innerText = "✅ 30s listening completed!";
     document.getElementById('statusBadge').innerText = "💬 Submit feedback below to reveal artist profile & links.";
