@@ -174,13 +174,21 @@
       console.error("Error fetching drops:", err);
     }
   }
-
-  function parseMediaUrl(inputString) {
+function parseMediaUrl(inputString) {
     const urlMatch = inputString.match(/(https?:\/\/[^\s]+)/g);
     const cleanUrl = urlMatch ? urlMatch[0] : inputString.trim();
 
-    // SoundCloud: gebruik de volledige URL voor de widget, of vang korte links op
-    if (cleanUrl.includes('soundcloud.com') || cleanUrl.includes('on.soundcloud.com')) {
+    // SOUNDCLOUD: Korte mobiele links (on.soundcloud.com) omzetten naar een directe actie-knop omdat iframes dit blokkeren
+    if (cleanUrl.includes('on.soundcloud.com')) {
+      return { 
+        platform: 'SoundCloud (Mobile Share)', 
+        embedUrl: '', // Geen iframe die breekt
+        rawUrl: cleanUrl,
+        btnText: '🟠 Listen on SoundCloud'
+      };
+    }
+
+    if (cleanUrl.includes('soundcloud.com')) {
       let scEmbedUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(cleanUrl)}&color=%238b5cf6&auto_play=false&hide_related=true&show_comments=false&show_user=false`;
       return { 
         platform: 'SoundCloud', 
@@ -203,7 +211,7 @@
     if (cleanUrl.includes('bandcamp.com')) {
       return { 
         platform: 'Bandcamp', 
-        embedUrl: cleanUrl,
+        embedUrl: '',
         rawUrl: cleanUrl,
         btnText: '🎵 Stream on Bandcamp'
       };
@@ -229,7 +237,7 @@
       };
     }
 
-    return { platform: 'External Link', embedUrl: cleanUrl, rawUrl: cleanUrl, btnText: '🎧 Open Platform Link' };
+    return { platform: 'External Link', embedUrl: '', rawUrl: cleanUrl, btnText: '🎧 Open Platform Link' };
   }
 
   async function createDrop() {
@@ -266,7 +274,23 @@
     document.getElementById('artistName').value = '';
   }
 
-  function loadDropIntoPlayer(index) {
+
+
+  function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      if (listenedSeconds < requiredSeconds) {
+        listenedSeconds++;
+        const percent = (listenedSeconds / requiredSeconds) * 100;
+        document.getElementById('progressFill').style.width = percent + '%';
+        document.getElementById('timerText').innerText = `Listen for ${requiredSeconds - listenedSeconds} more seconds...`;
+      } else {
+        clearInterval(timerInterval);
+        enableUnlock();
+      }
+    }, 1000);
+  }
+function loadDropIntoPlayer(index) {
     currentDropIndex = index;
     const drop = dropsList[index];
     listenedSeconds = 0;
@@ -276,8 +300,15 @@
 
     const container = document.getElementById('mediaContainer');
     
-    if (drop.platform === 'Bandcamp') {
-      container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:20px;text-align:center;"><a href="${drop.raw_link}" target="_blank" class="action-btn platform-btn" style="text-decoration:none;">🎵 Open Bandcamp Track</a></div>`;
+    // HIER VANGEN WE DE KNOP-LINKS (Bandcamp, Mobile Share of lege embeds) OP:
+    if (!drop.embed_url || drop.platform === 'Bandcamp' || drop.platform.includes('Mobile Share')) {
+      container.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:20px; text-align:center; gap: 10px;">
+          <p style="color: #a1a1aa; font-size: 0.85rem; margin: 0;">Open de track om te luisteren:</p>
+          <a href="${drop.raw_link}" target="_blank" class="action-btn platform-btn" style="text-decoration:none; display:inline-block;">
+            ${drop.btn_text || '🎧 Open Track'}
+          </a>
+        </div>`;
     } else {
       container.innerHTML = `<iframe src="${drop.embed_url}" allow="encrypted-media"></iframe>`;
     }
@@ -309,22 +340,6 @@
     document.getElementById('submitCard').style.display = 'none';
     document.getElementById('playerCard').style.display = 'block';
   }
-
-  function startTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-      if (listenedSeconds < requiredSeconds) {
-        listenedSeconds++;
-        const percent = (listenedSeconds / requiredSeconds) * 100;
-        document.getElementById('progressFill').style.width = percent + '%';
-        document.getElementById('timerText').innerText = `Listen for ${requiredSeconds - listenedSeconds} more seconds...`;
-      } else {
-        clearInterval(timerInterval);
-        enableUnlock();
-      }
-    }, 1000);
-  }
-
   function enableUnlock() {
     document.getElementById('timerText').innerText = "✅ 30s listening completed!";
     document.getElementById('statusBadge').innerText = "💬 Submit feedback below to reveal artist profile & links.";
