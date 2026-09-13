@@ -42,7 +42,7 @@
     button:hover { background: var(--accent-hover); }
 
     /* Player Container & Masking */
-    .player-wrapper { position: relative; width: 100%; height: 200px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
+    .player-wrapper { position: relative; width: 100%; height: 180px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
     
     .mask-overlay {
       position: absolute;
@@ -56,6 +56,15 @@
       transition: opacity 0.4s ease;
       padding: 16px;
       text-align: center;
+    }
+
+    /* Modus speciaal voor Spotify: dekt tekst af maar laat klik door naar speler */
+    .mask-overlay.spotify-pass {
+      pointer-events: none;
+      background: rgba(24, 24, 31, 0.85);
+    }
+    .mask-overlay.spotify-pass .play-trigger-btn {
+      pointer-events: auto;
     }
 
     .mask-overlay.unlocked { opacity: 0; pointer-events: none; }
@@ -89,7 +98,6 @@
     .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; border: 1px dashed var(--border); }
     .status-badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success); }
 
-    /* Promo Box voor Chatsong Home */
     .member-promo-box {
       display: none;
       background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.15));
@@ -134,7 +142,7 @@
   <div class="card" id="submitCard">
     <span class="badge">👁️ UNIVERSAL BLIND DROP</span>
     <h2>Submit Track or Short</h2>
-    <p class="sub">Paste any share link (SoundCloud, YouTube, Spotify, TikTok) or upload MP3.</p>
+    <p class="sub">Paste any share link (SoundCloud, YouTube, Spotify, Bandcamp, TikTok) or upload MP3.</p>
 
     <div class="form-group">
       <label>Platform Track / Video Link</label>
@@ -192,14 +200,14 @@
       <button onclick="unlockTrack()" id="unlockBtn" disabled>Submit Feedback & Unlock Artist 🔓</button>
     </div>
 
-    <!-- Unlocked Actions & Platform Links -->
+    <!-- Unlocked Actions -->
     <div class="actions-box" id="unlockedActions">
       <a href="#" target="_blank" class="action-btn platform-btn" id="originalLinkBtn">⭐ Open, Follow & Save on Platform</a>
       <a href="#" target="_blank" class="action-btn chatsong-btn" id="artistProfileBtn" style="display:none;">👤 View Artist Profile & Socials</a>
       <button class="action-btn share-btn" onclick="shareDrop()">📲 Share Blind Drop</button>
     </div>
 
-    <!-- Promo Box naar Chatsong Homepage -->
+    <!-- Promo Box -->
     <div class="member-promo-box" id="memberPromo">
       <div class="promo-badge">⚡ CHATSONG MUSIC COMMUNITY</div>
       <h3>Discover more hidden gems & share your music</h3>
@@ -245,7 +253,7 @@
 
     if (fileInput.files.length > 0) {
       platformDetect.innerText = "Source: Uploaded MP3 Audio";
-      detectedPlatform = { type: 'audio', platform: 'MP3 Audio', btnText: '💾 Download / Save MP3' };
+      detectedPlatform = { type: 'audio', platform: 'MP3 Audio', btnText: '💾 Save MP3' };
       const audioUrl = URL.createObjectURL(fileInput.files[0]);
       container.innerHTML = `<audio id="blindAudio" controls src="${audioUrl}"></audio>`;
     } else {
@@ -259,8 +267,19 @@
       }
     }
 
+    // Specifieke afhandeling voor Spotify om kliks toe te staan
+    if (detectedPlatform && detectedPlatform.platform === 'Spotify') {
+      document.getElementById('maskOverlay').classList.add('spotify-pass');
+      document.getElementById('statusBadge').innerText = "▶ Click the Play button inside the Spotify player to start.";
+    }
+
     document.getElementById('submitCard').style.display = 'none';
     document.getElementById('playerCard').style.display = 'block';
+
+    // Start timer op elke muisinteractie binnen de speler
+    document.getElementById('playerWrapper').addEventListener('click', () => {
+      if (!timerInterval) startTimer();
+    }, { once: true });
   }
 
   function parseMediaUrl(url) {
@@ -270,7 +289,7 @@
         type: 'iframe', 
         platform: 'SoundCloud', 
         embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=false`,
-        btnText: '☁️ Open, Follow & Favorite on SoundCloud'
+        btnText: '☁️ Open & Follow on SoundCloud'
       };
     }
 
@@ -281,7 +300,7 @@
         type: 'iframe', 
         platform: 'YouTube / Shorts', 
         embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?enablejsapi=1&autoplay=1`,
-        btnText: '🔔 Open & Subscribe on YouTube'
+        btnText: '🔔 Subscribe on YouTube'
       };
     }
 
@@ -292,21 +311,21 @@
         type: 'iframe', 
         platform: 'Spotify', 
         embedUrl: `https://open.spotify.com/embed/track/${spotifyMatch[1]}?utm_source=generator`,
-        btnText: '💚 Open & Save Track on Spotify'
+        btnText: '💚 Save Track on Spotify'
       };
     }
 
-    // 4. TikTok
-    if (url.includes('tiktok.com')) {
+    // 4. Bandcamp
+    if (url.includes('bandcamp.com')) {
       return { 
         type: 'iframe', 
-        platform: 'TikTok', 
+        platform: 'Bandcamp', 
         embedUrl: url,
-        btnText: '📱 Open & Follow on TikTok'
+        btnText: '🛒 Buy on Bandcamp'
       };
     }
 
-    return { type: 'audio', platform: 'Direct Audio Stream', embedUrl: url, btnText: '🎧 Open & Save Track' };
+    return { type: 'audio', platform: 'Direct Audio Stream', embedUrl: url, btnText: '🎧 Open Audio Stream' };
   }
 
   function triggerAudioPlayback() {
@@ -314,13 +333,13 @@
     const audioEl = document.getElementById('blindAudio');
     const iframeEl = document.getElementById('mediaIframe');
 
-    if (audioEl) {
-      audioEl.play().catch(e => console.log(e));
-    }
+    if (audioEl) audioEl.play().catch(e => console.log(e));
 
     if (detectedPlatform && detectedPlatform.platform === 'SoundCloud' && iframeEl && window.SC) {
-      scWidget = SC.Widget(iframeEl);
-      scWidget.play();
+      try {
+        scWidget = SC.Widget(iframeEl);
+        scWidget.play();
+      } catch(e) { console.log(e); }
     }
 
     if (detectedPlatform && detectedPlatform.platform.includes('YouTube') && iframeEl) {
@@ -328,12 +347,11 @@
     }
 
     playBtn.style.display = 'none';
-    document.getElementById('timerText').innerText = "Listening... 30 seconds remaining";
-    startTimer();
+    if (!timerInterval) startTimer();
   }
 
   function startTimer() {
-    if (timerInterval) clearInterval(timerInterval);
+    document.getElementById('timerText').innerText = "Listening... 30 seconds remaining";
     
     timerInterval = setInterval(() => {
       if (listenedSeconds < requiredSeconds) {
@@ -367,6 +385,7 @@
       return;
     }
 
+    document.getElementById('maskOverlay').classList.remove('spotify-pass');
     document.getElementById('maskOverlay').classList.add('unlocked');
 
     const badge = document.getElementById('statusBadge');
