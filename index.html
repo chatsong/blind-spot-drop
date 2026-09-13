@@ -84,21 +84,32 @@
     .track-title-link:hover { color: var(--accent); }
     .track-reason { font-size: 0.85rem; color: var(--muted); font-style: italic; background: #22222b; padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--gold); }
     .track-number-badge { background: var(--gold); color: #000; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 0.75rem; }
+
+    /* 🚀 STRAKKE LAAD ANIMATIE VOOR DE 5 SECONDEN GOOGLE WACHTTIJD */
+    .loader {
+      border: 3px solid rgba(139, 92, 246, 0.2);
+      border-top: 3px solid var(--accent);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px auto;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
 <div class="container">
 
-  <!-- STAP 1: FORMULIER -->
   <div class="form-card" id="submitCard">
     <span class="badge badge-gold">💎 CHATSONG HIDDEN GEM DROP (2026)</span>
     <h2>Submit Track or Mobile Share Link</h2>
-    <p class="sub">Drop your Spotify, SoundCloud, YouTube or Mixcloud link to enter the live chart!</p>
+    <p class="sub">Drop your Spotify, SoundCloud, YouTube Shorts or Mixcloud link to enter the live chart!</p>
 
     <div class="form-group">
       <label>Platform Link / Mobile Share Link</label>
-      <input type="url" id="trackUrl" placeholder="Paste Spotify, SoundCloud, mobile share link...">
+      <input type="url" id="trackUrl" placeholder="Paste link or mobile share text here...">
     </div>
 
     <div class="divider">— OR UPLOAD MP3 —</div>
@@ -120,7 +131,6 @@
     <button onclick="createDrop()">1. Launch Mystery Drop 🚀</button>
   </div>
 
-  <!-- STAP 2: PLAYER & REASON -->
   <div class="form-card" id="playerCard" style="display:none;">
     <span class="badge" id="roleBadge">🔒 MYSTERY DROP ACTIVE</span>
     
@@ -161,14 +171,16 @@
     </div>
   </div>
 
-  <!-- PERMANENTE FEED CONTAINER -->
   <div id="feed" style="display: flex; flex-direction: column; gap: 12px;">
     <div class="feed-header">
       <div class="feed-title">🌟 PERMANENT LIVE TRACK-CARDS FEED</div>
       <div class="feed-desc">All submitted tracks loaded directly from your Google Sheet database!</div>
     </div>
     <div id="trackCardsList">
-      <div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">Loading live track-cards from database...</div>
+      <div style="text-align: center; padding: 25px;">
+        <div class="loader"></div>
+        <div style="font-size: 0.85rem; color: var(--muted);">Connecting to live database...</div>
+      </div>
     </div>
   </div>
 
@@ -182,6 +194,7 @@
   let countdownTimer = null;
   const totalWaitSeconds = 3;
 
+  // JOUW GOOGLE SCRIPT URL
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyfn_WfP1lMPkwhlvvmD_xSeSzyiQzWGOASwH4GwkmCQ-9CsstEoz7Ojnm-sBGO3Cpx/exec';
 
   window.onload = function() {
@@ -191,6 +204,13 @@
   function fetchLiveFeed() {
     const listContainer = document.getElementById('trackCardsList');
     
+    // Zorg dat de loader zichtbaar is tijdens het ophalen
+    listContainer.innerHTML = `
+      <div style="text-align: center; padding: 25px;">
+        <div class="loader"></div>
+        <div style="font-size: 0.85rem; color: var(--muted);">Connecting to live database...</div>
+      </div>`;
+    
     fetch(GOOGLE_SCRIPT_URL)
       .then(response => response.json())
       .then(submissions => {
@@ -199,8 +219,11 @@
           return;
         }
 
+        // LOKAAL LIMITEREN TOT MAX 20: Snelheid voor de frontend (ZONDER Google Script aan te passen)
+        const latestSubmissions = submissions.slice(0, 20);
+
         let html = '';
-        submissions.forEach((sub, index) => {
+        latestSubmissions.forEach((sub, index) => {
           let positionNumber = index + 1;
           let displayTitle = sub.raw_link && sub.raw_link.length > 45 ? sub.raw_link.substring(0, 42) + '...' : (sub.raw_link || 'Track');
           
@@ -216,46 +239,51 @@
             </div>
           `;
         });
+        
+        if (submissions.length > 20) {
+           html += `<div style="text-align:center; font-size:0.8rem; color:var(--muted); padding:10px;">Showing 20 most recent drops.</div>`;
+        }
+        
         listContainer.innerHTML = html;
       })
       .catch(err => {
         console.warn("Feed fetch error:", err);
-        listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">Live feed is active.</div>`;
+        listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">Unable to connect. Live feed is active.</div>`;
       });
   }
 
-  // Filtert extra tekst weg en behoudt alleen de link
+  // Filtert automatische mobiele tekst weg (bijv. "Luister naar dit nummer https://...")
   function extractUrl(text) {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const found = text.match(urlRegex);
     return found ? found[0] : text;
   }
 
-  // Checkt welk platform het is en of we het kunnen embedden
+  // Bepaalt platform, formatteert iframes én beveiligt mobiele links tegen crashen
   function parseMediaUrl(url) {
-    // 1. YouTube
+    // YouTube & Shorts
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
       return { platform: 'YouTube / Shorts', embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`, canEmbed: true };
     }
 
-    // 2. Spotify (Volledige links, pakt nu ook '/intl-nl/' etc)
+    // Spotify (Volledig)
     const spotifyMatch = url.match(/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|episode|album|playlist)\/([a-zA-Z0-9]+)/);
     if (spotifyMatch) {
       return { platform: 'Spotify', embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator`, canEmbed: true };
     }
 
-    // 3. Spotify (Mobiele korte deel-links)
+    // Spotify Mobiel (Crash beveiliging)
     if (url.includes('spotify.link')) {
       return { platform: 'Spotify (Mobile Link)', embedUrl: url, canEmbed: false };
     }
 
-    // 4. SoundCloud (Mobiele korte deel-links - voorkomt de error van je screenshot!)
+    // SoundCloud Mobiel (Crash beveiliging)
     if (url.includes('on.soundcloud.com')) {
       return { platform: 'SoundCloud (Mobile Link)', embedUrl: url, canEmbed: false };
     }
 
-    // 5. SoundCloud (Volledige links)
+    // SoundCloud (Volledig)
     if (url.includes('soundcloud.com')) {
       return { 
         platform: 'SoundCloud', 
@@ -264,8 +292,8 @@
       };
     }
 
-    // 6. Al het overige
-    return { platform: 'Web Stream', embedUrl: url, canEmbed: false };
+    // Al het overige
+    return { platform: 'Web Link', embedUrl: url, canEmbed: false };
   }
 
   function createDrop() {
@@ -297,16 +325,16 @@
       currentEmbedUrl = parsed.embedUrl;
       platformDetect.innerText = `Platform: ${currentPlatform}`;
 
-      // Als de speler het ondersteunt laden we de iframe. Zo niet (mobiele link), dan tonen we een strakke placeholder!
       if (parsed.canEmbed) {
         container.innerHTML = `<iframe src="${currentEmbedUrl}" allow="autoplay; encrypted-media"></iframe>`;
       } else {
+        // Fallback voor mobiele links die anders de iframe laten crashen
         container.innerHTML = `
           <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 166px; background: #18181f; border-radius: 8px; padding: 20px; text-align: center;">
             <span style="font-size: 2rem; margin-bottom: 8px;">📱</span>
-            <strong style="color: #fff; font-size: 0.95rem;">Mobile Share Link Detected</strong>
-            <span style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">Player preview is unsupported for short-links, but your track is safely registered!</span>
-            <a href="${currentEmbedUrl}" target="_blank" style="margin-top: 12px; color: var(--accent); font-weight: bold; text-decoration: none; font-size: 0.85rem; background: rgba(139, 92, 246, 0.15); padding: 6px 12px; border-radius: 6px;">🔗 Test Original Link</a>
+            <strong style="color: #fff; font-size: 0.95rem;">Mobile Link Detected</strong>
+            <span style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">Player preview is unsupported for mobile short-links, but your track is safely registered!</span>
+            <a href="${currentEmbedUrl}" target="_blank" style="margin-top: 12px; color: var(--accent); font-weight: bold; text-decoration: none; font-size: 0.85rem; background: rgba(139, 92, 246, 0.15); padding: 6px 12px; border-radius: 6px;">🔗 Open Link</a>
           </div>
         `;
       }
