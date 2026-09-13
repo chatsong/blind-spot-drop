@@ -225,17 +225,27 @@
       });
   }
 
+  // HIER IS DE NIEUWE FILTER FUNCTIE VOOR DE DEELLINKS!
+  function extractUrl(text) {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const found = text.match(urlRegex);
+    return found ? found[0] : text;
+  }
+
   function createDrop() {
-    let urlInput = document.getElementById('trackUrl').value.trim();
+    let rawInput = document.getElementById('trackUrl').value.trim();
     const fileInput = document.getElementById('fileInput');
     const role = document.getElementById('submitterRole').value;
     const container = document.getElementById('mediaContainer');
     const platformDetect = document.getElementById('platformDetect');
 
-    if (!urlInput && fileInput.files.length === 0) {
+    if (!rawInput && fileInput.files.length === 0) {
       alert("Please enter a link or select an MP3 file.");
       return;
     }
+
+    // PAS DE EXTRACTOR TOE ZODAT ALLEEN DE LINK OVERBLIJFT
+    let urlInput = extractUrl(rawInput);
 
     rawLink = urlInput || "Uploaded Audio File";
     currentRoleText = role;
@@ -249,7 +259,7 @@
       currentEmbedUrl = URL.createObjectURL(fileInput.files[0]);
       container.innerHTML = `<audio controls src="${currentEmbedUrl}"></audio>`;
     } else {
-      const parsed = parseMediaUrl(urlInput);
+      const parsed = parseMediaUrl(urlInput); // Hier gaat nu altijd een schone link in!
       currentPlatform = parsed.platform;
       currentEmbedUrl = parsed.embedUrl;
       platformDetect.innerText = `Platform: ${currentPlatform}`;
@@ -301,14 +311,14 @@
       }
     }, 1000);
   }
-function unlockTrack() {
+
+  function unlockTrack() {
     const feedback = document.getElementById('feedbackText').value.trim();
     if (feedback.length < 10) {
       alert("Please write at least 10 characters explaining why you submitted this track.");
       return;
     }
 
-    // 1. Stap 1: Voeg de track toe via jouw 'add' actie
     const payloadAdd = {
       action: 'add',
       artist_name: currentRoleText,
@@ -325,10 +335,8 @@ function unlockTrack() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payloadAdd)
     }).then(() => {
-      // 2. Stap 2: Omdat jouw Apps Script bij 'add' kolom 9 leeg laat, 
-      // sturen we direct een 'unlock' actie achteraan die de feedback wél wegschrijft in kolom 9!
       setTimeout(() => {
-        const targetRow = 2; // Of de laatst toegevoegde rij in je sheet
+        const targetRow = 2; 
         const payloadUnlock = {
           action: 'unlock',
           row: targetRow, 
