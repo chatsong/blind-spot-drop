@@ -293,14 +293,15 @@
 
     const container = document.getElementById('mediaContainer');
     const mask = document.getElementById('maskOverlay');
-    container.innerHTML = '';
+    
+    // Laad GEEN iframe in tot de gebruiker op de knop drukt (maakt het super snel)
+    container.innerHTML = `<iframe id="mediaIframe" src="" allow="autoplay; encrypted-media"></iframe>`;
 
     document.getElementById('activeTrackBadge').innerText = `🔒 MYSTERY DROP`;
     document.getElementById('platformDetect').innerText = `Platform: ${drop.platform}`;
 
     mask.classList.remove('unlocked');
     document.getElementById('playerWrapper').classList.remove('unlocked');
-    container.innerHTML = `<iframe id="mediaIframe" src="${drop.embed_url}" allow="autoplay; encrypted-media"></iframe>`;
 
     document.getElementById('progressFill').style.width = '0%';
     document.getElementById('timerText').innerText = 'Tap above to start listening...';
@@ -316,6 +317,8 @@
     if (drop.unlocked) {
       mask.classList.add('unlocked');
       document.getElementById('playerWrapper').classList.add('unlocked');
+      // Als hij al unlocked is laden we de speler direct wel afgespeeld
+      document.getElementById('mediaIframe').src = drop.embed_url;
       document.getElementById('statusBadge').innerText = `🎉 Track Unlocked: ${drop.artist_name}`;
       document.getElementById('statusBadge').classList.add('success');
       document.getElementById('feedbackForm').style.display = 'none';
@@ -328,14 +331,12 @@
   }
 
   function startAudio() {
-    if (!timerInterval && !dropsList[currentDropIndex].unlocked) {
+    if (!timerInterval && currentDropIndex !== null && !dropsList[currentDropIndex].unlocked) {
+      const drop = dropsList[currentDropIndex];
       const iframe = document.getElementById('mediaIframe');
       if (iframe) {
-        let src = iframe.src;
-        if (!src.includes('autoplay=1')) {
-          src += (src.includes('?') ? '&' : '?') + 'autoplay=1';
-          iframe.src = src;
-        }
+        // Laad de embed URL pas in wanneer de gebruiker op de overlay tikt!
+        iframe.src = drop.embed_url;
       }
       startTimer();
     }
