@@ -72,6 +72,21 @@
     .actions-box { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
     .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
     .blog-btn { background: var(--gold); color: #000; }
+    .next-drop-btn { background: var(--success); color: #fff; margin-top: 4px; }
+
+    /* Genummerde lijst (1, 2, 3, 4...) onder elkaar */
+    .submissions-list-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-top: 16px; }
+    .reward-banner { background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(139,92,246,0.2)); border: 1px solid var(--gold); border-radius: 10px; padding: 12px; margin-bottom: 14px; text-align: center; }
+    .reward-title { font-size: 0.85rem; font-weight: bold; color: var(--gold); margin-bottom: 2px; }
+    .reward-desc { font-size: 0.75rem; color: var(--muted); }
+
+    .sub-item { background: #22222b; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start; }
+    .sub-number { background: var(--gold); color: #000; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; flex-shrink: 0; }
+    .sub-content { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; }
+    .sub-item-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--muted); }
+    .sub-item-title { font-weight: bold; font-size: 0.9rem; color: #fff; text-decoration: none; word-break: break-all; }
+    .sub-item-title:hover { color: var(--accent); }
+    .sub-item-reason { font-size: 0.8rem; color: var(--muted); font-style: italic; }
   </style>
 </head>
 <body>
@@ -145,9 +160,25 @@
 
     <!-- Unlocked State & Blog Chart Link -->
     <div class="actions-box" id="unlockedActions">
+      <div style="background: rgba(245,158,11,0.15); border: 1px solid var(--gold); border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 6px;">
+        <div style="font-weight: bold; color: var(--gold); font-size: 0.85rem;">🏆 VIP Chart Reward Unlocked!</div>
+        <div style="font-size: 0.75rem; color: var(--muted);">Your track has successfully secured a numbered position below.</div>
+      </div>
       <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Original Track</a>
-      <!-- Exacte link naar je live blog artikel met de interactieve chart -->
-      <a href="https://chatsong.nl/blog/1642-mysterieus-hidden-gem-drop" target="_blank" class="action-btn blog-btn">🏆 Open Chatsong Blog Chart & View Your Track Live! 🚀</a>
+      <a href="https://chatsong.nl/blog/1642-mysterieus-hidden-gem-drop" target="_blank" class="action-btn blog-btn">🏆 Open Chatsong Blog Chart & View Live! 🚀</a>
+      <!-- Direct weer klaar om een nieuwe track in te dienen -->
+      <button class="action-btn next-drop-btn" onclick="resetToSubmit()">➕ Brilliant drop! Want to submit another one? 🚀</button>
+    </div>
+  </div>
+
+  <!-- GENUMMERDE LIJST (1, 2, 3, 4...) -->
+  <div class="submissions-list-card" id="submissionsCard">
+    <div class="reward-banner">
+      <div class="reward-title">🌟 LIVE CHART FEED (1, 2, 3...)</div>
+      <div class="reward-desc">Check out the latest submitted gems and share the blog post with friends!</div>
+    </div>
+    <div id="submissionsList">
+      <!-- Wordt dynamisch gevuld -->
     </div>
   </div>
 
@@ -155,8 +186,16 @@
 
 <script>
   let rawLink = '';
+  let currentRoleText = '';
   let countdownTimer = null;
   const totalWaitSeconds = 3;
+
+  // Jouw Google Apps Script URL
+  const GOOGLE_SCRIPT_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnS9JK4XmKRuOCofOc9SH4iY1XpC4kj5TOIRxhUufk9ShMqK2dCPGVRLef6bsUN5L_TTU2ET_Kgv5wM_NHx3bvQUFjkOjzvta7gQTsFmevpTei7R1I6-gO7r90opMzAcOBr4kytc301XcQQBj8wsbobxUpbxJCIW9PzJ8YxF5m7HLXpbr_QXNbP9LzUUn-BdY_5fLIUU6U_JwcFv8wY9DrKATC0gWwuOyQGGNcA7h9aqUJxpvJxVJRRoC_cAy7OZuramvm0D5G6_vzhv_KHWA5cXsoIeEg&lib=MU40vuj27Wvf99T-4_4aqO0-DGdiQLF-5';
+
+  window.onload = function() {
+    renderSubmissions();
+  };
 
   function createDrop() {
     let urlInput = document.getElementById('trackUrl').value.trim();
@@ -170,7 +209,7 @@
       return;
     }
 
-    rawLink = urlInput;
+    rawLink = urlInput || "Uploaded Audio File";
     container.innerHTML = '';
 
     const roleTitles = {
@@ -179,7 +218,8 @@
       radio: "📻 RADIO CHART PREMIERE",
       fan: "🎧 FAN HIDDEN GEM VOTE"
     };
-    document.getElementById('roleBadge').innerText = roleTitles[role] || "🔒 MYSTERY DROP";
+    currentRoleText = roleTitles[role] || "🔒 MYSTERY DROP";
+    document.getElementById('roleBadge').innerText = currentRoleText;
 
     if (fileInput.files.length > 0) {
       platformDetect.innerText = "Source: Uploaded Audio File";
@@ -198,19 +238,16 @@
   }
 
   function parseMediaUrl(url) {
-    // YouTube & Shorts
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
     if (ytMatch) {
       return { platform: 'YouTube / Shorts', embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1` };
     }
 
-    // Spotify
     const spotifyMatch = url.match(/open\.spotify\.com\/(track|episode|album|playlist)\/([a-zA-Z0-9]+)/);
     if (spotifyMatch) {
       return { platform: 'Spotify', embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator` };
     }
 
-    // SoundCloud (ondersteunt nu ook verkorte on.soundcloud.com mobiele/desktop share links feilloos)
     if (url.includes('soundcloud.com') || url.includes('on.soundcloud.com')) {
       return { 
         platform: 'SoundCloud', 
@@ -218,12 +255,10 @@
       };
     }
 
-    // Bandcamp
     if (url.includes('bandcamp.com')) {
       return { platform: 'Bandcamp', embedUrl: `https://bandcamp.com/EmbeddedPlayer/v=2/track=${encodeURIComponent(url)}/size=small/bgcol=18181f/linkcol=8b5cf6/transparent=true/` };
     }
 
-    // Fallback voor overige streams / direct links
     return { platform: 'Direct Link / Stream', embedUrl: url };
   }
 
@@ -253,21 +288,100 @@
       return;
     }
 
-    // Verwijder de mask overlay zodat de speler volledig zichtbaar wordt
+    // Sla op in de lijst
+    saveSubmission(rawLink, currentRoleText, feedback);
+
+    // Stuur door naar Google Apps Script
+    sendToGoogleScript(rawLink, currentRoleText, feedback);
+
     document.getElementById('maskOverlay').classList.add('unlocked');
 
     const badge = document.getElementById('statusBadge');
     badge.innerText = "🎉 Track Successfully Registered for the Chart!";
     badge.classList.add('success');
 
-    // Toon de definitieve actieknoppen met de juiste blog-link
     document.getElementById('unlockedActions').style.display = 'flex';
-    if (rawLink) {
+    if (rawLink.startsWith('http')) {
       document.getElementById('originalLinkBtn').href = rawLink;
+    } else {
+      document.getElementById('originalLinkBtn').style.display = 'none';
     }
 
-    // Verberg het invoerveld na succes
     document.getElementById('feedbackForm').style.display = 'none';
+    renderSubmissions();
+  }
+
+  function saveSubmission(link, role, reason) {
+    let submissions = JSON.parse(localStorage.getItem('chatsong_drops') || '[]');
+    submissions.unshift({
+      link: link,
+      role: role,
+      reason: reason,
+      date: new Date().toLocaleDateString()
+    });
+    if (submissions.length > 20) submissions.pop();
+    localStorage.setItem('chatsong_drops', JSON.stringify(submissions));
+  }
+
+  function sendToGoogleScript(link, role, reason) {
+    if (!GOOGLE_SCRIPT_URL) return;
+    const data = { link: link, role: role, reason: reason, date: new Date().toISOString() };
+    fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).catch(err => console.log('Google Script sync note:', err));
+  }
+
+  function renderSubmissions() {
+    const listContainer = document.getElementById('submissionsList');
+    let submissions = JSON.parse(localStorage.getItem('chatsong_drops') || '[]');
+
+    if (submissions.length === 0) {
+      listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 10px;">No tracks submitted yet. Be #1!</div>`;
+      return;
+    }
+
+    let html = '';
+    // Genummerde lijst 1, 2, 3, 4... netjes onder elkaar
+    submissions.forEach((sub, index) => {
+      let displayTitle = sub.link.length > 38 ? sub.link.substring(0, 35) + '...' : sub.link;
+      let positionNumber = index + 1; // 1, 2, 3, 4...
+      
+      html += `
+        <div class="sub-item">
+          <div class="sub-number">${positionNumber}</div>
+          <div class="sub-content">
+            <div class="sub-item-header">
+              <span>${sub.role}</span>
+              <span>${sub.date}</span>
+            </div>
+            <a href="${sub.link.startsWith('http') ? sub.link : '#'}" target="_blank" class="sub-item-title">🎵 ${displayTitle}</a>
+            <div class="sub-item-reason">"${sub.reason}"</div>
+          </div>
+        </div>
+      `;
+    });
+    listContainer.innerHTML = html;
+  }
+
+  function resetToSubmit() {
+    // Velden legen zodat ze direct opnieuw kunnen indienen
+    document.getElementById('trackUrl').value = '';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('feedbackText').value = '';
+    document.getElementById('maskOverlay').classList.remove('unlocked');
+    document.getElementById('unlockedActions').style.display = 'none';
+    document.getElementById('feedbackForm').style.display = 'block';
+    
+    const badge = document.getElementById('statusBadge');
+    badge.innerText = "💬 Fill in the reason below to unlock your track live in the chart!";
+    badge.classList.remove('success');
+
+    document.getElementById('playerCard').style.display = 'none';
+    document.getElementById('submitCard').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 </script>
 
