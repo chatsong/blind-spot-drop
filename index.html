@@ -182,8 +182,8 @@
   let countdownTimer = null;
   const totalWaitSeconds = 3;
 
-  // Jouw exacte werkende Google Apps Script Web App URL
-  const GOOGLE_SCRIPT_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnSO-va85l3Ic2zJm8kpWNLrUJd3I8PmTvcCpi3UZTY-7691ItVi2AHWJExXXcApvNZh1iib2bOVfzMlGLmIEoXeCZxkmmmXktKmFcFXAE97ecFkU-7w0SwhZ2i_4uixWBc0wi-LRFcApAbmPeyzBgUlWaNLh06oIIci4qPOi4wxDw_bxcARqIiDdR197v1khVkCsUQSo_I6F_0H6CdUmHKQHvOoN75aOzEUIYytvXWQW-ewNVC2yGWu9c9PARAdCtqZthx6TvimsLwM3hAaCDRU7aD4QA&lib=MU40vuj27Wvf99T-4_4aqO0-DGdiQLF-5';
+  // JOUW JUISTE URL HIER INGEVULD:
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxdfbtEwlGQEuPViUcIT9b5J729zyh8ZE8dfU26ays7E6yuA5V0xomoTWeK7cJ1RdBW/exec';
 
   window.onload = function() {
     fetchLiveFeed();
@@ -221,7 +221,7 @@
       })
       .catch(err => {
         console.warn("Feed fetch error:", err);
-        listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">Live feed is active. (Check console for info).</div>`;
+        listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">Live feed is active.</div>`;
       });
   }
 
@@ -309,7 +309,7 @@
       return;
     }
 
-    // 1. Eerst toevoegen in de Sheet via doPost ('add')
+    // Verstuur naar Google Sheet
     fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
@@ -324,8 +324,6 @@
         btn_text: 'Stream on ' + currentPlatform
       })
     }).then(() => {
-      // Wacht even zodat Google Sheets de rij heeft verwerkt, daarna direct updaten met feedback ('unlock')
-      // Handige tip: We kunnen ook direct na de 'add' een kleine vertraging inbouwen of de feed opnieuw ophalen.
       setTimeout(() => {
         fetchLiveFeed();
       }, 1500);
