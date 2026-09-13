@@ -78,6 +78,7 @@
     .feed-title { font-size: 0.9rem; font-weight: bold; color: var(--gold); margin-bottom: 2px; }
     .feed-desc { font-size: 0.75rem; color: var(--muted); }
 
+    .track-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
     .track-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
     .track-title-link { font-weight: bold; font-size: 0.95rem; color: #fff; text-decoration: none; word-break: break-all; display: block; margin-bottom: 6px; }
     .track-title-link:hover { color: var(--accent); }
@@ -181,8 +182,8 @@
   let countdownTimer = null;
   const totalWaitSeconds = 3;
 
-  // Jouw Google Apps Script URL
-  const GOOGLE_SCRIPT_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnS9JK4XmKRuOCofOc9SH4iY1XpC4kj5TOIRxhUufk9ShMqK2dCPGVRLef6bsUN5L_TTU2ET_Kgv5wM_NHx3bvQUFjkOjzvta7gQTsFmevpTei7R1I6-gO7r90opMzAcOBr4kytc301XcQQBj8wsbobxUpbxJCIW9PzJ8YxF5m7HLXpbr_QXNbP9LzUUn-BdY_5fLIUU6U_JwcFv8wY9DrKATC0gWwuOyQGGNcA7h9aqUJxpvJxVJRRoC_cAy7OZuramvm0D5G6_vzhv_KHWA5cXsoIeEg&lib=MU40vuj27Wvf99T-4_4aqO0-DGdiQLF-5';
+  // Jouw exacte werkende Google Apps Script Web App URL
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzSG0_V-I1JKMFUD2EXIJp-yDd4PLNJfv56wYLxvoPZbvG1hAUOPyI0KTcER5Jd0qK2/exec';
 
   window.onload = function() {
     fetchLiveFeed();
@@ -200,7 +201,6 @@
         }
 
         let html = '';
-        // We lopen door de rijen heen die jouw doGet() functie teruglevert
         submissions.forEach((sub, index) => {
           let positionNumber = index + 1;
           let displayTitle = sub.raw_link && sub.raw_link.length > 45 ? sub.raw_link.substring(0, 42) + '...' : (sub.raw_link || 'Track');
@@ -220,8 +220,8 @@
         listContainer.innerHTML = html;
       })
       .catch(err => {
-        console.warn("Fetch error:", err);
-        listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">Live feed is active. (Check Google Apps Script deployment).</div>`;
+        console.warn("Feed fetch error:", err);
+        listContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--muted); text-align: center; padding: 15px;">Live feed is active. (Check console for info).</div>`;
       });
   }
 
@@ -309,7 +309,7 @@
       return;
     }
 
-    // Stap 1: Stuur eerst de 'add' actie naar jouw doPost() functie zodat er een nieuwe rij wordt aangemaakt in de Sheet
+    // 1. Eerst toevoegen in de Sheet via doPost ('add')
     fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
@@ -324,7 +324,8 @@
         btn_text: 'Stream on ' + currentPlatform
       })
     }).then(() => {
-      // Direct hierna sturen we de feedback mee met een korte vertraging zodat de database de rij heeft verwerkt
+      // Wacht even zodat Google Sheets de rij heeft verwerkt, daarna direct updaten met feedback ('unlock')
+      // Handige tip: We kunnen ook direct na de 'add' een kleine vertraging inbouwen of de feed opnieuw ophalen.
       setTimeout(() => {
         fetchLiveFeed();
       }, 1500);
