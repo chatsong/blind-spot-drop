@@ -1,270 +1,292 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chatsong - Blind Drop Engine</title>
+  <title>Chatsong - Universal Blind Drop</title>
   <style>
     :root {
       --bg: #0f0f12;
       --card: #18181f;
       --accent: #8b5cf6;
       --accent-hover: #7c3aed;
-      --spotify: #1db954;
-      --soundcloud: #ff5500;
-      --apple: #fc3c44;
-      --youtube: #ff0000;
       --text: #ffffff;
       --muted: #a1a1aa;
       --border: #27272a;
+      --success: #10b981;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; min-height: 100vh; }
-    .app { width: 100%; max-width: 550px; display: flex; flex-direction: column; gap: 20px; }
+    body { background: var(--bg); color: var(--text); padding: 12px; display: flex; justify-content: center; min-height: 100vh; }
+    .app { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; margin: auto 0; }
     
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
-    h2 { font-size: 1.25rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-    .tag { background: rgba(139, 92, 246, 0.2); color: var(--accent); padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; }
+    .badge { display: inline-block; background: rgba(139, 92, 246, 0.2); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; margin-bottom: 12px; }
+    
+    h2 { font-size: 1.2rem; margin-bottom: 6px; }
+    p.sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; }
 
-    /* Form Fields */
     .form-group { margin-bottom: 12px; }
-    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
-    input, select, textarea { width: 100%; padding: 10px 12px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+    input, textarea { width: 100%; padding: 12px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
+    input:focus, textarea:focus { outline: none; border-color: var(--accent); }
 
-    button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .divider { text-align: center; color: var(--muted); font-size: 0.75rem; margin: 10px 0; }
+
+    button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
     button:hover { background: var(--accent-hover); }
 
-    /* Player View */
-    .player-header { text-align: center; padding: 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
-    .mystery-title { font-size: 1.4rem; font-weight: bold; }
-    .mystery-artist { color: var(--muted); font-size: 0.95rem; margin-top: 4px; }
+    /* Player Container & Blind Masking */
+    .player-wrapper { position: relative; width: 100%; min-height: 180px; border-radius: 12px; overflow: hidden; background: #000; margin: 16px 0; border: 1px solid var(--border); }
+    
+    .mask-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #18181f;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: opacity 0.4s ease;
+      padding: 16px;
+      text-align: center;
+    }
 
-    /* Progress & Timer */
-    .timer-container { margin: 16px 0; }
-    .progress-bar { width: 100%; height: 8px; background: #27272a; border-radius: 4px; overflow: hidden; }
-    .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s linear; }
-    .timer-text { font-size: 0.8rem; color: var(--muted); text-align: center; margin-top: 6px; }
+    .mask-overlay.unlocked { opacity: 0; pointer-events: none; }
 
-    /* Audio Element */
+    iframe { width: 100%; height: 180px; border: none; display: block; }
     audio { width: 100%; margin-top: 10px; }
 
-    /* Unlock Platforms */
-    .platform-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; display: none; }
-    .plat-btn { padding: 10px; border-radius: 8px; text-decoration: none; color: white; font-size: 0.85rem; font-weight: bold; text-align: center; }
-    .spotify { background: var(--spotify); }
-    .soundcloud { background: var(--soundcloud); }
-    .apple { background: var(--apple); }
-    .youtube { background: var(--youtube); }
+    /* Progress & Timer */
+    .timer-box { margin: 12px 0; text-align: center; }
+    .progress-bar { width: 100%; height: 6px; background: #27272a; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+    .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s linear; }
+    .timer-text { font-size: 0.8rem; color: var(--muted); }
 
-    /* Lock Screen Overlay */
-    .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; }
-    .unlocked { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; }
+    .status-badge { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem; margin: 12px 0; border: 1px dashed var(--border); }
+    .status-badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success); }
 
-    @media (max-width: 480px) {
-      .row { grid-template-columns: 1fr; }
-      .platform-links { grid-template-columns: 1fr; }
-    }
+    .actions-box { display: none; gap: 8px; margin-top: 12px; flex-direction: column; }
+    .action-btn { text-align: center; background: #27272a; padding: 12px; border-radius: 8px; color: #fff; text-decoration: none; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
+    .share-btn { background: var(--accent); }
   </style>
 </head>
 <body>
 
 <div class="app">
 
-  <!-- STEP 1: CREATE DROP (ARTIST INPUT) -->
-  <div class="card" id="creatorCard">
-    <h2><span class="tag">MAKER</span> Drop een Track</h2>
-    
-    <div class="row">
-      <div class="form-group">
-        <label>Echte Artiestennaam</label>
-        <input type="text" id="inputArtist" placeholder="bijv. ZE7DD">
-      </div>
-      <div class="form-group">
-        <label>Track Titel</label>
-        <input type="text" id="inputTitle" placeholder="bijv. Ayla">
-      </div>
-    </div>
+  <!-- STEP 1: SUBMIT -->
+  <div class="card" id="submitCard">
+    <span class="badge">👁️ UNIVERSAL BLIND DROP</span>
+    <h2>Submit Track or Short</h2>
+    <p class="sub">Paste any share link (YouTube Shorts, Spotify, SoundCloud, etc.) or upload an MP3.</p>
 
     <div class="form-group">
-      <label>Audio Bron (MP3 Bestand óf Directe Preview Link)</label>
-      <input type="file" id="inputFile" accept="audio/*" style="margin-bottom: 6px;">
-      <input type="url" id="inputAudioUrl" placeholder="Of plak MP3 / Preview URL">
+      <label>Platform Link / Mobile Share Link</label>
+      <input type="url" id="trackUrl" placeholder="Paste YouTube Shorts, Spotify, SoundCloud URL...">
     </div>
+
+    <div class="divider">— OR UPLOAD MP3 —</div>
 
     <div class="form-group">
-      <label>Platform Links voor Save (Optioneel)</label>
-      <div class="row">
-        <input type="url" id="linkSpotify" placeholder="Spotify Link">
-        <input type="url" id="linkSoundcloud" placeholder="SoundCloud Link">
-      </div>
-      <div class="row" style="margin-top: 6px;">
-        <input type="url" id="linkApple" placeholder="Apple Music Link">
-        <input type="url" id="linkYoutube" placeholder="YouTube Link">
-      </div>
+      <input type="file" id="fileInput" accept="audio/*">
     </div>
 
-    <button onclick="publishDrop()">Genereer Blind Drop 🚀</button>
+    <button onclick="createDrop()">Create Blind Drop 🚀</button>
   </div>
 
-  <!-- STEP 2: BLIND PLAYER (LISTENER VIEW) -->
+  <!-- STEP 2: BLIND PLAYER VIEW -->
   <div class="card" id="playerCard" style="display:none;">
-    <h2><span class="tag">LUISTERAAR</span> 👁️ The Blind Drop</h2>
+    <span class="badge">🔒 MYSTERY DROP</span>
+    
+    <div class="player-wrapper" id="playerWrapper">
+      <!-- Donkere afdeklaag -->
+      <div class="mask-overlay" id="maskOverlay">
+        <div style="font-size: 1.8rem; margin-bottom: 4px;">🔒</div>
+        <div style="font-weight: bold; font-size: 1.1rem;">Hidden Artist & Track</div>
+        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;" id="platformDetect">Detecting platform...</div>
+      </div>
 
-    <div class="player-header">
-      <div class="mystery-title" id="displayTitle">🔒 Mystery Track</div>
-      <div class="mystery-artist" id="displayArtist">🔒 Verborgen Artiest</div>
+      <!-- Speler container -->
+      <div id="mediaContainer"></div>
     </div>
 
-    <!-- Audio Speler -->
-    <audio id="mainPlayer" controls></audio>
-
-    <!-- Luister-timer voor vereiste seconden -->
-    <div class="timer-container">
+    <!-- Timer -->
+    <div class="timer-box">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="timer-text" id="timerText">Luister nog 30 seconden om de knop en feedback vrij te schakelen</div>
+      <div class="timer-text" id="timerText">Listen for 30 seconds to unlock feedback...</div>
     </div>
 
     <div class="status-badge" id="statusBadge">
-      🔒 Speler vergrendeld. Druk op play en luister minimaal 30 seconden.
+      ▶ Play the track above to start the 30s unlock timer.
     </div>
 
-    <!-- Feedback & Unlock sectie -->
-    <div id="unlockForm" style="opacity: 0.5; pointer-events: none;">
+    <!-- Feedback -->
+    <div id="feedbackForm" style="opacity: 0.4; pointer-events: none; margin-top: 12px;">
       <div class="form-group">
-        <label>Jouw Eerlijke Feedback (Minimaal 10 tekens)</label>
-        <textarea id="feedbackText" rows="2" placeholder="Wat vind je van de productie, de vibe of het ritme?"></textarea>
+        <label>Honest Feedback (Min. 10 characters)</label>
+        <textarea id="feedbackText" rows="3" placeholder="How is the production, mix, or vibe?"></textarea>
       </div>
-      <button onclick="unlockContent()" id="unlockBtn" disabled>Verstuur & Onthul Artiest 🔓</button>
+      <button onclick="unlockTrack()" id="unlockBtn" disabled>Submit Feedback & Unlock 🔓</button>
     </div>
 
-    <!-- Ontgrendelde Platform Links -->
-    <div class="platform-links" id="platformLinks">
-      <a href="#" target="_blank" id="btnSpotify" class="plat-btn spotify">💚 Spotify</a>
-      <a href="#" target="_blank" id="btnSoundcloud" class="plat-btn soundcloud">🧡 SoundCloud</a>
-      <a href="#" target="_blank" id="btnApple" class="plat-btn apple">❤️ Apple Music</a>
-      <a href="#" target="_blank" id="btnYoutube" class="plat-btn youtube">❤️ YouTube</a>
+    <!-- Unlocked State -->
+    <div class="actions-box" id="unlockedActions">
+      <a href="#" target="_blank" class="action-btn" id="originalLinkBtn">🔗 Open Original Track</a>
+      <button class="action-btn share-btn" onclick="shareDrop()">📲 Share Blind Drop</button>
     </div>
   </div>
 
 </div>
 
 <script>
-  let dropData = {};
+  let rawLink = '';
   let listenedSeconds = 0;
-  let requiredSeconds = 30; // Bepaal luistertijd
+  const requiredSeconds = 30;
   let timerInterval = null;
-  let isListeningComplete = false;
 
-  const audio = document.getElementById('mainPlayer');
+  function createDrop() {
+    const urlInput = document.getElementById('trackUrl').value.trim();
+    const fileInput = document.getElementById('fileInput');
+    const container = document.getElementById('mediaContainer');
+    const platformDetect = document.getElementById('platformDetect');
 
-  function publishDrop() {
-    const artist = document.getElementById('inputArtist').value.trim() || 'Onbekende Artiest';
-    const title = document.getElementById('inputTitle').value.trim() || 'Naamloze Track';
-    const fileInput = document.getElementById('inputFile');
-    const urlInput = document.getElementById('inputAudioUrl').value.trim();
-
-    let audioSrc = '';
-    if (fileInput.files.length > 0) {
-      audioSrc = URL.createObjectURL(fileInput.files[0]);
-    } else if (urlInput) {
-      audioSrc = urlInput;
-    } else {
-      // Demo fallback audio als er niks is geüpload
-      audioSrc = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-    }
-
-    dropData = {
-      artist: artist,
-      title: title,
-      audioSrc: audioSrc,
-      spotify: document.getElementById('linkSpotify').value,
-      soundcloud: document.getElementById('linkSoundcloud').value,
-      apple: document.getElementById('linkApple').value,
-      youtube: document.getElementById('linkYoutube').value
-    };
-
-    // Laad speler
-    audio.src = dropData.audioSrc;
-    document.getElementById('creatorCard').style.display = 'none';
-    document.getElementById('playerCard').style.display = 'block';
-  }
-
-  // Luistertimer verwerken
-  audio.addEventListener('play', () => {
-    if (isListeningComplete) return;
-
-    timerInterval = setInterval(() => {
-      if (!audio.paused && listenedSeconds < requiredSeconds) {
-        listenedSeconds++;
-        updateProgress();
-      }
-    }, 1000);
-  });
-
-  audio.addEventListener('pause', () => {
-    clearInterval(timerInterval);
-  });
-
-  function updateProgress() {
-    const percentage = (listenedSeconds / requiredSeconds) * 100;
-    document.getElementById('progressFill').style.width = percentage + '%';
-
-    const remaining = requiredSeconds - listenedSeconds;
-    if (remaining > 0) {
-      document.getElementById('timerText').innerText = `Luister nog ${remaining} seconden...`;
-    } else {
-      document.getElementById('timerText').innerText = "✅ Voldoende geluisterd! Vul je feedback in.";
-      enableFeedbackForm();
-    }
-  }
-
-  function enableFeedbackForm() {
-    isListeningComplete = true;
-    clearInterval(timerInterval);
-    document.getElementById('unlockForm').style.opacity = "1";
-    document.getElementById('unlockForm').style.pointerEvents = "auto";
-    document.getElementById('unlockBtn').disabled = false;
-    document.getElementById('statusBadge').innerText = "💬 Luistertijd gehaald! Geef feedback om te ontgrendelen.";
-  }
-
-  function unlockContent() {
-    const feedback = document.getElementById('feedbackText').value.trim();
-    if (feedback.length < 10) {
-      alert("Schrijf minimaal 10 tekens feedback om te ontgrendelen.");
+    if (!urlInput && fileInput.files.length === 0) {
+      alert("Please enter a link or select an MP3 file.");
       return;
     }
 
-    // Onthul data
-    document.getElementById('displayTitle').innerText = dropData.title;
-    document.getElementById('displayArtist').innerText = "👤 " + dropData.artist;
+    container.innerHTML = '';
+    rawLink = urlInput;
+
+    if (fileInput.files.length > 0) {
+      // Local MP3
+      platformDetect.innerText = "Source: Uploaded Audio File";
+      const audioUrl = URL.createObjectURL(fileInput.files[0]);
+      container.innerHTML = `<audio id="blindAudio" controls src="${audioUrl}"></audio>`;
+      setupAudioListener(document.getElementById('blindAudio'));
+    } else {
+      // Platform Link Parsing
+      const parsed = parseMediaUrl(urlInput);
+      platformDetect.innerText = `Platform: ${parsed.platform}`;
+      
+      if (parsed.type === 'iframe') {
+        container.innerHTML = `<iframe src="${parsed.embedUrl}" allow="autoplay; encrypted-media"></iframe>`;
+        startTimer(); // Timer start for embeds
+      } else {
+        container.innerHTML = `<audio id="blindAudio" controls src="${urlInput}"></audio>`;
+        setupAudioListener(document.getElementById('blindAudio'));
+      }
+    }
+
+    document.getElementById('submitCard').style.display = 'none';
+    document.getElementById('playerCard').style.display = 'block';
+  }
+
+  // Universal URL Parser (Shorts, Spotify, YouTube, SoundCloud)
+  function parseMediaUrl(url) {
+    // 1. YouTube & YouTube Shorts (handles mobile shares like youtu.be, /shorts/)
+    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
+    if (ytMatch) {
+      return { 
+        type: 'iframe', 
+        platform: 'YouTube / Shorts', 
+        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1` 
+      };
+    }
+
+    // 2. Spotify (Tracks & Episodes)
+    const spotifyMatch = url.match(/open\.spotify\.com\/(track|episode)\/([a-zA-Z0-9]+)/);
+    if (spotifyMatch) {
+      return { 
+        type: 'iframe', 
+        platform: 'Spotify', 
+        embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator` 
+      };
+    }
+
+    // 3. SoundCloud (Standard & Mobile Links)
+    if (url.includes('soundcloud.com')) {
+      return { 
+        type: 'iframe', 
+        platform: 'SoundCloud', 
+        embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%238b5cf6&auto_play=true&hide_related=true&show_comments=false&show_user=false` 
+      };
+    }
+
+    // 4. Default / Audio Direct Link
+    return { type: 'audio', platform: 'Direct Link / Audio Stream', embedUrl: url };
+  }
+
+  function setupAudioListener(audioEl) {
+    audioEl.addEventListener('play', () => startTimer());
+    audioEl.addEventListener('pause', () => clearInterval(timerInterval));
+  }
+
+  function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    
+    timerInterval = setInterval(() => {
+      if (listenedSeconds < requiredSeconds) {
+        listenedSeconds++;
+        const percent = (listenedSeconds / requiredSeconds) * 100;
+        document.getElementById('progressFill').style.width = percent + '%';
+        
+        const remaining = requiredSeconds - listenedSeconds;
+        document.getElementById('timerText').innerText = `Listen for ${remaining} more seconds...`;
+      } else {
+        clearInterval(timerInterval);
+        enableUnlock();
+      }
+    }, 1000);
+  }
+
+  function enableUnlock() {
+    document.getElementById('timerText').innerText = "✅ Required 30s listening reached!";
+    document.getElementById('statusBadge').innerText = "💬 Submit feedback below to reveal origin & links.";
+    
+    const form = document.getElementById('feedbackForm');
+    form.style.opacity = "1";
+    form.style.pointerEvents = "auto";
+    document.getElementById('unlockBtn').disabled = false;
+  }
+
+  function unlockTrack() {
+    const feedback = document.getElementById('feedbackText').value.trim();
+    if (feedback.length < 10) {
+      alert("Please leave at least 10 characters of feedback.");
+      return;
+    }
+
+    // Mask verwijderen
+    document.getElementById('maskOverlay').classList.add('unlocked');
 
     // Status update
-    const status = document.getElementById('statusBadge');
-    status.innerText = "🎉 Artiest Ontgrendeld!";
-    status.classList.add('unlocked');
+    const badge = document.getElementById('statusBadge');
+    badge.innerText = "🎉 Track & Artist Unlocked!";
+    badge.classList.add('success');
 
-    // Toon links
-    const platContainer = document.getElementById('platformLinks');
-    platContainer.style.display = 'grid';
-
-    setupLink('btnSpotify', dropData.spotify);
-    setupLink('btnSoundcloud', dropData.soundcloud);
-    setupLink('btnApple', dropData.apple);
-    setupLink('btnYoutube', dropData.youtube);
+    // Toon link en Share knoppen
+    document.getElementById('unlockedActions').style.display = 'flex';
+    if (rawLink) {
+      document.getElementById('originalLinkBtn').href = rawLink;
+    }
 
     document.getElementById('unlockBtn').style.display = 'none';
   }
 
-  function setupLink(id, url) {
-    const el = document.getElementById(id);
-    if (url && url.length > 5) {
-      el.href = url;
-      el.style.display = 'block';
+  // Native Web Share API voor Mobiel
+  function shareDrop() {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Blind Drop on Chatsong',
+        text: 'Listen to this mystery track on Chatsong without bias!',
+        url: window.location.href
+      });
     } else {
-      el.style.display = 'none';
+      navigator.clipboard.writeText(window.location.href);
+      alert("Link copied to clipboard!");
     }
   }
 </script>
