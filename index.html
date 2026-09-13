@@ -308,29 +308,42 @@ function unlockTrack() {
       return;
     }
 
-    // Exact afgestemd op wat jouw doPost() script verwacht!
-    const payload = {
+    // 1. Stap 1: Voeg de track toe via jouw 'add' actie
+    const payloadAdd = {
       action: 'add',
       artist_name: currentRoleText,
       raw_link: rawLink,
       profile_link: rawLink,
       platform: currentPlatform,
       embed_url: currentEmbedUrl,
-      btn_text: 'Stream on ' + currentPlatform,
-      feedback: feedback // Nu wordt de feedback direct meegestuurd naar kolom 9!
+      btn_text: 'Stream on ' + currentPlatform
     };
 
-    // Verstuur naar Google Sheet met no-cors
     fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payloadAdd)
     }).then(() => {
-      // Wacht 2 seconden zodat Google Sheet de rij heeft weggeschreven en haal dan de lijst op
+      // 2. Stap 2: Omdat jouw Apps Script bij 'add' kolom 9 leeg laat, 
+      // sturen we direct een 'unlock' actie achteraan die de feedback wél wegschrijft in kolom 9!
       setTimeout(() => {
-        fetchLiveFeed();
-      }, 2000);
+        const targetRow = 2; // Of de laatst toegevoegde rij in je sheet
+        const payloadUnlock = {
+          action: 'unlock',
+          row: targetRow, 
+          feedback: feedback
+        };
+
+        fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payloadUnlock)
+        }).then(() => {
+          setTimeout(() => { fetchLiveFeed(); }, 1500);
+        });
+      }, 1000);
     }).catch(err => console.log("Sheet add note:", err));
 
     document.getElementById('maskOverlay').classList.add('unlocked');
