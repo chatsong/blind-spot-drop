@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -194,7 +195,7 @@
   let countdownTimer = null;
   const totalWaitSeconds = 3;
 
-  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyfn_WfP1lMPkwhlvvmD_xSeSzyiQzWGOASwH4GwkmCQ-9CsstEoz7Ojnm-sBGO3Cpx/exec';
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQwSFIzCxbpvj4iILS-_NcOU8PZQ-Ad2uCIJI63K1a1uYBMqGku5yCeCHFey2dM9A/exec';
 
   window.onload = function() {
     fetchLiveFeed();
@@ -382,8 +383,20 @@
         fetch(GOOGLE_SCRIPT_URL)
           .then(res => res.json())
           .then(data => {
-            // De nieuwste toevoeging zit nu op rij 2 in de Google Sheet (direct onder de header op rij 1)
-            const targetRow = 2; 
+            // Dynamisch zoeken naar de juiste rij i.p.v. hardcoded op 2
+            let targetRow = null;
+            const foundItem = data.find(item => item.raw_link === rawLink && !item.unlocked);
+            
+            if (foundItem) {
+              targetRow = foundItem.row;
+            } else if (data.length > 0) {
+              targetRow = data[data.length - 1].row;
+            }
+
+            if (!targetRow) {
+              console.error("Kon de rij in de sheet niet vinden.");
+              return;
+            }
 
             const payloadUnlock = {
               action: 'unlock',
