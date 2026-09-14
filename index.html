@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,8 +33,6 @@
     input, textarea, select { width: 100%; padding: 12px; background: #22222b; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; }
     input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
 
-    .divider { text-align: center; color: var(--muted); font-size: 0.75rem; margin: 10px 0; }
-
     button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
     button:hover { background: var(--accent-hover); }
 
@@ -58,7 +55,6 @@
     .mask-overlay.unlocked { opacity: 0; pointer-events: none; }
 
     iframe { width: 100%; height: 166px; border: none; display: block; }
-    audio { width: 100%; margin-top: 10px; }
 
     /* Progress & Timer */
     .timer-box { margin: 12px 0; text-align: center; }
@@ -86,7 +82,7 @@
     .track-reason { font-size: 0.85rem; color: var(--muted); font-style: italic; background: #22222b; padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--gold); }
     .track-number-badge { background: var(--gold); color: #000; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 0.75rem; }
 
-    /* 🚀 STRAKKE LAAD ANIMATIE */
+    /* Laad animatie */
     .loader {
       border: 3px solid rgba(139, 92, 246, 0.2);
       border-top: 3px solid var(--accent);
@@ -110,13 +106,13 @@
 
     <div class="form-group">
       <label>Platform Link / Mobile Share Link</label>
-      <input type="url" id="trackUrl" placeholder="Paste link or mobile share text here...">
+      <input type="url" id="trackUrl" placeholder="Paste Spotify, SoundCloud or YouTube link...">
     </div>
 
-    <div class="divider">— OR UPLOAD MP3 —</div>
-
-    <div class="form-group">
-      <input type="file" id="fileInput" accept="audio/*">
+    <!-- Melding voor MP3 uploaden op Chatsong -->
+    <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 12px; text-align: center; margin-bottom: 14px; font-size: 0.85rem;">
+      🎵 Want to upload an MP3 directly? <br>
+      <a href="https://chatsong.nl" target="_blank" style="color: var(--accent); font-weight: bold; text-decoration: underline;">Join Chatsong</a> to upload in a topic with player!
     </div>
 
     <div class="form-group">
@@ -288,45 +284,37 @@
 
   function createDrop() {
     let rawInput = document.getElementById('trackUrl').value.trim();
-    const fileInput = document.getElementById('fileInput');
     const role = document.getElementById('submitterRole').value;
     const container = document.getElementById('mediaContainer');
     const platformDetect = document.getElementById('platformDetect');
 
-    if (!rawInput && fileInput.files.length === 0) {
-      alert("Please enter a link or select an MP3 file.");
+    if (!rawInput) {
+      alert("Please enter a valid link.");
       return;
     }
 
     let urlInput = extractUrl(rawInput);
-    rawLink = urlInput || "Uploaded Audio File";
+    rawLink = urlInput;
     currentRoleText = role;
     document.getElementById('roleBadge').innerText = currentRoleText;
     container.innerHTML = '';
 
-    if (fileInput.files.length > 0) {
-      currentPlatform = "Audio Upload";
-      platformDetect.innerText = "Source: Uploaded Audio File";
-      currentEmbedUrl = URL.createObjectURL(fileInput.files[0]);
-      container.innerHTML = `<audio controls src="${currentEmbedUrl}"></audio>`;
-    } else {
-      const parsed = parseMediaUrl(urlInput); 
-      currentPlatform = parsed.platform;
-      currentEmbedUrl = parsed.embedUrl;
-      platformDetect.innerText = `Platform: ${currentPlatform}`;
+    const parsed = parseMediaUrl(urlInput); 
+    currentPlatform = parsed.platform;
+    currentEmbedUrl = parsed.embedUrl;
+    platformDetect.innerText = `Platform: ${currentPlatform}`;
 
-      if (parsed.canEmbed) {
-        container.innerHTML = `<iframe src="${currentEmbedUrl}" allow="autoplay; encrypted-media"></iframe>`;
-      } else {
-        container.innerHTML = `
-          <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 166px; background: #18181f; border-radius: 8px; padding: 20px; text-align: center;">
-            <span style="font-size: 2rem; margin-bottom: 8px;">📱</span>
-            <strong style="color: #fff; font-size: 0.95rem;">Mobile Link Detected</strong>
-            <span style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">Player preview is unsupported for mobile short-links, but your track is safely registered!</span>
-            <a href="${currentEmbedUrl}" target="_blank" style="margin-top: 12px; color: var(--accent); font-weight: bold; text-decoration: none; font-size: 0.85rem; background: rgba(139, 92, 246, 0.15); padding: 6px 12px; border-radius: 6px;">🔗 Open Link</a>
-          </div>
-        `;
-      }
+    if (parsed.canEmbed) {
+      container.innerHTML = `<iframe src="${currentEmbedUrl}" allow="autoplay; encrypted-media"></iframe>`;
+    } else {
+      container.innerHTML = `
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 166px; background: #18181f; border-radius: 8px; padding: 20px; text-align: center;">
+          <span style="font-size: 2rem; margin-bottom: 8px;">📱</span>
+          <strong style="color: #fff; font-size: 0.95rem;">Mobile Link Detected</strong>
+          <span style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">Player preview is unsupported for mobile short-links, but your track is safely registered!</span>
+          <a href="${currentEmbedUrl}" target="_blank" style="margin-top: 12px; color: var(--accent); font-weight: bold; text-decoration: none; font-size: 0.85rem; background: rgba(139, 92, 246, 0.15); padding: 6px 12px; border-radius: 6px;">🔗 Open Link</a>
+        </div>
+      `;
     }
 
     document.getElementById('submitCard').style.display = 'none';
@@ -383,7 +371,6 @@
         fetch(GOOGLE_SCRIPT_URL)
           .then(res => res.json())
           .then(data => {
-            // Dynamisch zoeken naar de juiste rij i.p.v. hardcoded op 2
             let targetRow = null;
             const foundItem = data.find(item => item.raw_link === rawLink && !item.unlocked);
             
@@ -438,7 +425,6 @@
 
   function resetToSubmit() {
     document.getElementById('trackUrl').value = '';
-    document.getElementById('fileInput').value = '';
     document.getElementById('feedbackText').value = '';
     document.getElementById('mediaContainer').innerHTML = '';
     document.getElementById('maskOverlay').classList.remove('unlocked');
